@@ -32,7 +32,8 @@ pub fn system_with_image_invalid_test() {
 
 pub fn assistant_text_message_creation_test() {
   // Test creating a valid assistant message with text content
-  let test_message = message.assistant("Assistant response", None, False)
+  let assert Ok(test_message) =
+    message.assistant("Assistant response", None, False)
   // Check that it's the expected type
   case test_message {
     message.AssistantMessage(_, _, _) -> True
@@ -55,7 +56,7 @@ pub fn assistant_with_tool_calls_test() {
     )
 
   // Test creating an assistant message with tool calls
-  let test_message =
+  let assert Ok(test_message) =
     message.assistant(
       "I'll check the weather for you",
       Some([tool_call]),
@@ -77,7 +78,7 @@ pub fn assistant_with_tool_calls_test() {
 pub fn assistant_multi_content_invalid_test() {
   // No longer applicable with the simplified API
   // We'll just check that assistant message accepts strings
-  let msg = message.assistant("Plain text only", None, False)
+  let assert Ok(msg) = message.assistant("Plain text only", None, False)
   case msg {
     message.AssistantMessage(_, _, _) -> True
     _ -> False
@@ -88,7 +89,7 @@ pub fn assistant_multi_content_invalid_test() {
 pub fn user_message_creation_test() {
   // Text content
   message.user(message.TextContent("User message"))
-
+  |> should.be_ok
   // Multi-content with text and image
   message.user(
     message.MultiContent([
@@ -96,6 +97,7 @@ pub fn user_message_creation_test() {
       message.ImageUrl("https://example.com/image.jpg"),
     ]),
   )
+  |> should.be_ok
 }
 
 pub fn tool_message_with_tool_fields_test() {
@@ -105,6 +107,7 @@ pub fn tool_message_with_tool_fields_test() {
     "call_123456",
     "weather_tool",
   )
+  |> should.be_ok
 
   // With multi-content
   message.tool(
@@ -115,14 +118,15 @@ pub fn tool_message_with_tool_fields_test() {
     "call_789012",
     "image_generator",
   )
+  |> should.be_ok
 }
 
 pub fn get_role_test() {
   // Test that get_role correctly returns the role for each message type
   let assert Ok(system_msg) = message.system(message.TextContent("System"))
-  let user_msg = message.user(message.TextContent("User"))
-  let assistant_msg = message.assistant("Assistant", None, False)
-  let assistant_with_tools_msg =
+  let assert Ok(user_msg) = message.user(message.TextContent("User"))
+  let assert Ok(assistant_msg) = message.assistant("Assistant", None, False)
+  let assert Ok(assistant_with_tools_msg) =
     message.assistant(
       "Assistant with tools",
       Some([
@@ -135,7 +139,8 @@ pub fn get_role_test() {
       ]),
       False,
     )
-  let tool_msg = message.tool(message.TextContent("Tool"), "id", "name")
+  let assert Ok(tool_msg) =
+    message.tool(message.TextContent("Tool"), "id", "name")
 
   should.equal(message.System, message.get_role(system_msg))
   should.equal(message.User, message.get_role(user_msg))
@@ -146,7 +151,7 @@ pub fn get_role_test() {
 
 pub fn tool_message_to_json_text_test() {
   // Create a tool message with text content
-  let test_message =
+  let assert Ok(test_message) =
     message.tool(
       message.TextContent("Tool output"),
       "call_abc123",
@@ -171,7 +176,7 @@ pub fn tool_message_to_json_text_test() {
 
 pub fn tool_message_to_json_multi_test() {
   // Create a tool message with multi-content
-  let test_message =
+  let assert Ok(test_message) =
     message.tool(
       message.MultiContent([
         message.Text("Analysis result"),
@@ -216,7 +221,7 @@ pub fn assistant_message_with_tool_calls_to_json_test() {
       index: 0,
     )
 
-  let test_message =
+  let assert Ok(test_message) =
     message.assistant(
       "I'll search for restaurants in Paris",
       Some([tool_call]),
@@ -267,7 +272,7 @@ pub fn system_message_to_json_test() {
 
 pub fn user_message_to_json_test() {
   // Create a user message
-  let test_message = message.user(message.TextContent("Hello world"))
+  let assert Ok(test_message) = message.user(message.TextContent("Hello world"))
 
   // Convert to JSON string
   let json_string =
@@ -282,7 +287,8 @@ pub fn user_message_to_json_test() {
 
 pub fn assistant_message_to_json_test() {
   // Create an assistant message without tool calls
-  let test_message = message.assistant("I'm an assistant", None, False)
+  let assert Ok(test_message) =
+    message.assistant("I'm an assistant", None, False)
 
   // Convert to JSON string
   let json_string =
@@ -302,7 +308,7 @@ pub fn assistant_message_to_json_test() {
 
 pub fn multi_content_to_json_test() {
   // Create a multi-content message
-  let test_message =
+  let assert Ok(test_message) =
     message.user(
       message.MultiContent([
         message.Text("Text part"),

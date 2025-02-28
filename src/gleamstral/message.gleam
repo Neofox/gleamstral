@@ -80,24 +80,24 @@ pub fn system(content: MessageContent) -> Result(Message, Error) {
   }
 }
 
-pub fn user(content: MessageContent) -> Message {
-  UserMessage(content)
+pub fn user(content: MessageContent) -> Result(Message, Error) {
+  Ok(UserMessage(content))
 }
 
 pub fn assistant(
   content: String,
   tool_calls: Option(List(ToolCall)),
   prefix: Bool,
-) -> Message {
-  AssistantMessage(content, tool_calls, prefix)
+) -> Result(Message, Error) {
+  Ok(AssistantMessage(content, tool_calls, prefix))
 }
 
 pub fn tool(
   content: MessageContent,
   tool_call_id: String,
   name: String,
-) -> Message {
-  ToolMessage(content, tool_call_id, name)
+) -> Result(Message, Error) {
+  Ok(ToolMessage(content, tool_call_id, name))
 }
 
 pub fn to_json(message: Message) -> json.Json {
