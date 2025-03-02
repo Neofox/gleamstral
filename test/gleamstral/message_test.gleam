@@ -161,7 +161,7 @@ pub fn tool_message_to_json_text_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -189,7 +189,7 @@ pub fn tool_message_to_json_multi_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -231,7 +231,7 @@ pub fn assistant_message_with_tool_calls_to_json_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -259,7 +259,7 @@ pub fn system_message_to_json_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -277,7 +277,7 @@ pub fn user_message_to_json_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -293,7 +293,7 @@ pub fn assistant_message_to_json_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks
@@ -319,7 +319,7 @@ pub fn multi_content_to_json_test() {
   // Convert to JSON string
   let json_string =
     test_message
-    |> message.to_json
+    |> message.message_encoder
     |> json.to_string
 
   // Basic string content checks

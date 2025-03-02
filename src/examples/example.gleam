@@ -7,7 +7,7 @@ import gleamstral/model
 // To run this example:
 // gleam run -m examples/example 
 
-const api_key = "Your API Key Here"
+const api_key = "UDZsqg8vbaKXSSPSNiOb9weHnAviT4q7"
 
 pub fn main() {
   // Create a new client
@@ -27,9 +27,5 @@ pub fn main() {
     |> result.values
 
   let response = client.chat_completion(client, model.MistralSmall, messages)
-
-  case response {
-    Ok(result) -> io.println("Response: " <> result)
-    Error(error) -> io.println("Error: " <> error)
-  }
+  io.debug(response)
 }
