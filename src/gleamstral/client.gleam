@@ -1,23 +1,14 @@
+import gleam/float
 import gleam/http
 import gleam/http/request
 import gleam/httpc
+import gleam/int
 import gleam/io
 import gleam/json
-import gleam/result
 import gleamstral/message.{type Message}
 import gleamstral/model
 
 const api_endpoint = "api.mistral.ai"
-
-pub type Error {
-  InvalidTemperature
-  InvalidMaxTokens
-  InvalidTopP
-  InvalidRandomSeed
-  InvalidPresencePenalty
-  InvalidFrequencyPenalty
-  InvalidN
-}
 
 pub type ResponseFormat {
   JsonObject
@@ -82,8 +73,6 @@ pub type Prediction {
 }
 
 /// Config type to hold all configuration parameters for a client.
-/// This is part of the Builder pattern design, allowing for clean
-/// separation of configuration from the client itself.
 pub type Config {
   Config(
     temperature: Float,
@@ -111,8 +100,8 @@ pub type Config {
 /// ```gleam
 /// let client = 
 ///   client.new("your_api_key")
-///   |> client.with_temperature(0.7)
-///   |> client.with_max_tokens(100)
+///   |> client.set_temperature(0.7)
+///   |> client.set_max_tokens(100)
 /// ```
 pub type Client {
   Client(api_key: String, config: Config)
@@ -155,10 +144,16 @@ pub fn new(api_key: String) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_temperature(0.7)
+/// let client = client.new("api_key") |> client.set_temperature(0.7)
 /// ```
-pub fn with_temperature(client: Client, temperature: Float) -> Client {
-  Client(..client, config: Config(..client.config, temperature:))
+pub fn set_temperature(client: Client, temperature: Float) -> Client {
+  Client(
+    ..client,
+    config: Config(
+      ..client.config,
+      temperature: float.clamp(temperature, 0.0, 1.5),
+    ),
+  )
 }
 
 /// Set the maximum number of tokens to generate.
@@ -166,10 +161,13 @@ pub fn with_temperature(client: Client, temperature: Float) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_max_tokens(100)
+/// let client = client.new("api_key") |> client.set_max_tokens(100)
 /// ```
-pub fn with_max_tokens(client: Client, max_tokens: Int) -> Client {
-  Client(..client, config: Config(..client.config, max_tokens:))
+pub fn set_max_tokens(client: Client, max_tokens: Int) -> Client {
+  Client(
+    ..client,
+    config: Config(..client.config, max_tokens: int.max(max_tokens, 0)),
+  )
 }
 
 /// Set the top_p parameter for nucleus sampling.
@@ -177,10 +175,13 @@ pub fn with_max_tokens(client: Client, max_tokens: Int) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_top_p(0.9)
+/// let client = client.new("api_key") |> client.set_top_p(0.9)
 /// ```
-pub fn with_top_p(client: Client, top_p: Float) -> Client {
-  Client(..client, config: Config(..client.config, top_p:))
+pub fn set_top_p(client: Client, top_p: Float) -> Client {
+  Client(
+    ..client,
+    config: Config(..client.config, top_p: float.clamp(top_p, 0.0, 1.0)),
+  )
 }
 
 /// Set the stop sequences for the client.
@@ -188,9 +189,9 @@ pub fn with_top_p(client: Client, top_p: Float) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_stop(["END", "STOP"])
+/// let client = client.new("api_key") |> client.set_stop(["END", "STOP"])
 /// ```
-pub fn with_stop(client: Client, stop: List(String)) -> Client {
+pub fn set_stop(client: Client, stop: List(String)) -> Client {
   Client(..client, config: Config(..client.config, stop:))
 }
 
@@ -199,10 +200,13 @@ pub fn with_stop(client: Client, stop: List(String)) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_random_seed(42)
+/// let client = client.new("api_key") |> client.set_random_seed(42)
 /// ```
-pub fn with_random_seed(client: Client, random_seed: Int) -> Client {
-  Client(..client, config: Config(..client.config, random_seed:))
+pub fn set_random_seed(client: Client, random_seed: Int) -> Client {
+  Client(
+    ..client,
+    config: Config(..client.config, random_seed: int.max(random_seed, 0)),
+  )
 }
 
 /// Set whether responses should be streamed.
@@ -210,9 +214,9 @@ pub fn with_random_seed(client: Client, random_seed: Int) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_stream(True)
+/// let client = client.new("api_key") |> client.set_stream(True)
 /// ```
-pub fn with_stream(client: Client, stream: Bool) -> Client {
+pub fn set_stream(client: Client, stream: Bool) -> Client {
   Client(..client, config: Config(..client.config, stream:))
 }
 
@@ -221,9 +225,9 @@ pub fn with_stream(client: Client, stream: Bool) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_response_format(client.JsonObject)
+/// let client = client.new("api_key") |> client.set_response_format(client.JsonObject)
 /// ```
-pub fn with_response_format(
+pub fn set_response_format(
   client: Client,
   response_format: ResponseFormat,
 ) -> Client {
@@ -236,9 +240,9 @@ pub fn with_response_format(
 ///
 /// ```gleam
 /// let tool = client.Function(name: "calculator", description: "Calculates stuff", strict: True, parameters: "{}")
-/// let client = client.new("api_key") |> client.with_tools([tool])
+/// let client = client.new("api_key") |> client.set_tools([tool])
 /// ```
-pub fn with_tools(client: Client, tools: List(Tool)) -> Client {
+pub fn set_tools(client: Client, tools: List(Tool)) -> Client {
   Client(..client, config: Config(..client.config, tools:))
 }
 
@@ -247,9 +251,9 @@ pub fn with_tools(client: Client, tools: List(Tool)) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_tool_choice(client.Auto)
+/// let client = client.new("api_key") |> client.set_tool_choice(client.Auto)
 /// ```
-pub fn with_tool_choice(client: Client, tool_choice: ToolChoice) -> Client {
+pub fn set_tool_choice(client: Client, tool_choice: ToolChoice) -> Client {
   Client(..client, config: Config(..client.config, tool_choice:))
 }
 
@@ -258,10 +262,16 @@ pub fn with_tool_choice(client: Client, tool_choice: ToolChoice) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_presence_penalty(0.5)
+/// let client = client.new("api_key") |> client.set_presence_penalty(0.5)
 /// ```
-pub fn with_presence_penalty(client: Client, presence_penalty: Float) -> Client {
-  Client(..client, config: Config(..client.config, presence_penalty:))
+pub fn set_presence_penalty(client: Client, presence_penalty: Float) -> Client {
+  Client(
+    ..client,
+    config: Config(
+      ..client.config,
+      presence_penalty: float.clamp(presence_penalty, -2.0, 2.0),
+    ),
+  )
 }
 
 /// Set the frequency penalty to discourage repeated token usage.
@@ -269,13 +279,16 @@ pub fn with_presence_penalty(client: Client, presence_penalty: Float) -> Client 
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_frequency_penalty(0.5)
+/// let client = client.new("api_key") |> client.set_frequency_penalty(0.5)
 /// ```
-pub fn with_frequency_penalty(
-  client: Client,
-  frequency_penalty: Float,
-) -> Client {
-  Client(..client, config: Config(..client.config, frequency_penalty:))
+pub fn set_frequency_penalty(client: Client, frequency_penalty: Float) -> Client {
+  Client(
+    ..client,
+    config: Config(
+      ..client.config,
+      frequency_penalty: float.clamp(frequency_penalty, -2.0, 2.0),
+    ),
+  )
 }
 
 /// Set the number of completions to generate.
@@ -283,14 +296,14 @@ pub fn with_frequency_penalty(
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_n(2)
+/// let client = client.new("api_key") |> client.set_n(2)
 /// ```
-pub fn with_n(client: Client, n: Int) -> Client {
-  Client(..client, config: Config(..client.config, n:))
+pub fn set_n(client: Client, n: Int) -> Client {
+  Client(..client, config: Config(..client.config, n: int.max(n, 1)))
 }
 
 /// Set the prediction for the client.
-pub fn with_prediction(client: Client, prediction: Prediction) -> Client {
+pub fn set_prediction(client: Client, prediction: Prediction) -> Client {
   Client(..client, config: Config(..client.config, prediction:))
 }
 
@@ -299,9 +312,9 @@ pub fn with_prediction(client: Client, prediction: Prediction) -> Client {
 /// ### Example
 ///
 /// ```gleam
-/// let client = client.new("api_key") |> client.with_safe_prompt(True)
+/// let client = client.new("api_key") |> client.set_safe_prompt(True)
 /// ```
-pub fn with_safe_prompt(client: Client, safe_prompt: Bool) -> Client {
+pub fn set_safe_prompt(client: Client, safe_prompt: Bool) -> Client {
   Client(..client, config: Config(..client.config, safe_prompt: safe_prompt))
 }
 
@@ -313,7 +326,7 @@ pub fn with_safe_prompt(client: Client, safe_prompt: Bool) -> Client {
 /// ```gleam
 /// let client = 
 ///   client.new("your_api_key")
-///   |> client.with_temperature(0.7)
+///   |> client.set_temperature(0.7)
 ///
 /// let messages = [
 ///   message.system("You are a helpful assistant"),
@@ -330,7 +343,6 @@ pub fn chat_completion(
   model: model.Model,
   messages: List(Message),
 ) -> Result(String, String) {
-  let assert Ok(_) = validate_config(client.config)
   let body = make_body(client, model, messages)
 
   let request =
@@ -349,46 +361,6 @@ pub fn chat_completion(
       Error("Error sending request")
     }
   }
-}
-
-fn validate_config(config: Config) -> Result(Config, String) {
-  use _ <- result.try(case
-    config.temperature >=. 0.0 && config.temperature <=. 1.5
-  {
-    True -> Ok(Nil)
-    False -> Error("Invalid temperature: must be between 0.0 and 1.5")
-  })
-
-  use _ <- result.try(case config.max_tokens >= 0 {
-    True -> Ok(Nil)
-    False -> Error("Invalid max_tokens: must be non-negative")
-  })
-  use _ <- result.try(case config.top_p >=. 0.0 && config.top_p <=. 1.0 {
-    True -> Ok(Nil)
-    False -> Error("Invalid top_p: must be between 0.0 and 1.0")
-  })
-  use _ <- result.try(case config.random_seed >= 0 {
-    True -> Ok(Nil)
-    False -> Error("Invalid random_seed: must be non-negative")
-  })
-  use _ <- result.try(case
-    config.presence_penalty >=. -2.0 && config.presence_penalty <=. 2.0
-  {
-    True -> Ok(Nil)
-    False -> Error("Invalid presence_penalty: must be between -2.0 and 2.0")
-  })
-  use _ <- result.try(case
-    config.frequency_penalty >=. -2.0 && config.frequency_penalty <=. 2.0
-  {
-    True -> Ok(Nil)
-    False -> Error("Invalid frequency_penalty: must be between -2.0 and 2.0")
-  })
-  use _ <- result.try(case config.n >= 1 {
-    True -> Ok(Nil)
-    False -> Error("Invalid n: must be at least 1")
-  })
-
-  Ok(config)
 }
 
 fn make_body(

@@ -13,9 +13,9 @@ pub fn main() {
   // Create a new client
   let client =
     client.new(api_key)
-    |> client.with_temperature(0.7)
-    |> client.with_max_tokens(150)
-    |> client.with_response_format(client.JsonObject)
+    |> client.set_temperature(0.7)
+    |> client.set_max_tokens(150)
+    |> client.set_response_format(client.JsonObject)
 
   let messages =
     [
