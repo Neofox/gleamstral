@@ -117,11 +117,10 @@ fn content_part_decoder() -> decode.Decoder(ContentPart) {
 
 fn tool_call_decoder() -> decode.Decoder(ToolCall) {
   use id <- decode.field("id", decode.string)
-  use tool_type <- decode.field("type", decode.string)
   use function <- decode.field("function", function_call_decoder())
   use index <- decode.field("index", decode.int)
 
-  decode.success(ToolCall(id, tool_type, function, index))
+  decode.success(ToolCall(id, function, index, tool_type: "function"))
 }
 
 fn function_call_decoder() -> decode.Decoder(FunctionCall) {

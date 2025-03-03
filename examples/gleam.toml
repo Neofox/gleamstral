@@ -16,3 +16,4 @@ gleamstral = { path = "../" }
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 glenvy = ">= 1.2.0 and < 2.0.0"
 file_streams = ">= 1.4.0 and < 2.0.0"
+gleam_json = ">= 2.3.0 and < 3.0.0"

@@ -6,6 +6,7 @@ import gleam/list
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
+import gleamstral/response
 import glenvy/dotenv
 import glenvy/env
 
@@ -34,8 +35,9 @@ pub fn main() {
   case response {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
+      let assert message.AssistantMessage(content, _, _) = choice.message
 
-      io.println("Response: " <> extract_content(choice.message))
+      io.println("Response: " <> content)
       io.println(extract_usage(res.usage))
     }
     Error(error) -> {
@@ -59,14 +61,7 @@ fn read_until_eof(stream, acc: BitArray) -> BitArray {
   }
 }
 
-fn extract_content(msg: message.Message) -> String {
-  case msg {
-    message.AssistantMessage(content, _, _) -> content
-    _ -> "Unexpected message type"
-  }
-}
-
-fn extract_usage(res: client.Usage) -> String {
+fn extract_usage(res: response.Usage) -> String {
   "Usage: completion_tokens: "
   <> int.to_string(res.completion_tokens)
   <> " prompt_tokens: "

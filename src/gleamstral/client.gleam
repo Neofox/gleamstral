@@ -6,6 +6,7 @@ import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/json
+import gleam/list
 import gleamstral/message.{type Message}
 import gleamstral/model
 import gleamstral/response.{type Response, response_decoder}
@@ -49,7 +50,25 @@ pub fn tool_choice_to_string(tool_choice: ToolChoice) -> String {
 }
 
 pub type Tool {
-  Function(name: String, description: String, strict: Bool, parameters: String)
+  Function(
+    name: String,
+    description: String,
+    strict: Bool,
+    parameters: ToolParameters,
+  )
+}
+
+pub type ToolParameters {
+  ToolParameters(
+    type_: String,
+    properties: List(#(String, ParameterProperty)),
+    required: List(String),
+    additional_properties: Bool,
+  )
+}
+
+pub type ParameterProperty {
+  ParameterProperty(type_: String)
 }
 
 pub fn tool_to_json(tool: Tool) -> json.Json {
@@ -63,11 +82,74 @@ pub fn tool_to_json(tool: Tool) -> json.Json {
             #("name", json.string(name)),
             #("description", json.string(description)),
             #("strict", json.bool(strict)),
-            #("parameters", json.string(parameters)),
+            #("parameters", parameters_to_json(parameters)),
           ]),
         ),
       ])
   }
+}
+
+/// Create a function tool with parameters
+///
+/// ### Example
+///
+/// ```gleam
+/// let weather_tool = client.create_function_tool(
+///   name: "get_weather",
+///   description: "Get current temperature for provided coordinates in celsius.",
+///   strict: True,
+///   property_types: [
+///     #("latitude", "number"),
+///     #("longitude", "number"),
+///   ],
+///   required: ["latitude", "longitude"],
+///   additional_properties: False,
+/// )
+/// ```
+pub fn create_function_tool(
+  name: String,
+  description: String,
+  strict: Bool,
+  property_types: List(#(String, String)),
+  required: List(String),
+  additional_properties: Bool,
+) -> Tool {
+  let properties =
+    property_types
+    |> list.map(fn(prop) {
+      let #(name, type_) = prop
+      #(name, ParameterProperty(type_: type_))
+    })
+
+  Function(
+    name: name,
+    description: description,
+    strict: strict,
+    parameters: ToolParameters(
+      type_: "object",
+      properties: properties,
+      required: required,
+      additional_properties: additional_properties,
+    ),
+  )
+}
+
+fn parameters_to_json(parameters: ToolParameters) -> json.Json {
+  json.object([
+    #("type", json.string(parameters.type_)),
+    #(
+      "properties",
+      json.object(
+        parameters.properties
+        |> list.map(fn(prop: #(String, ParameterProperty)) {
+          let #(name, property) = prop
+          #(name, json.object([#("type", json.string(property.type_))]))
+        }),
+      ),
+    ),
+    #("required", json.array(parameters.required, of: json.string)),
+    #("additionalProperties", json.bool(parameters.additional_properties)),
+  ])
 }
 
 pub type Prediction {
@@ -240,8 +322,21 @@ pub fn set_response_format(
 /// ### Example
 ///
 /// ```gleam
-/// let tool = client.Function(name: "calculator", description: "Calculates stuff", strict: True, parameters: "{}")
-/// let client = client.new("api_key") |> client.set_tools([tool])
+/// // Create a weather tool using the helper function
+/// let weather_tool = client.create_function_tool(
+///   name: "get_weather",
+///   description: "Get current temperature for provided coordinates in celsius.",
+///   strict: True,
+///   property_types: [
+///     #("latitude", "number"),
+///     #("longitude", "number"),
+///   ],
+///   required: ["latitude", "longitude"],
+///   additional_properties: False,
+/// )
+///
+/// // Set the tool on the client
+/// let client = client.new("api_key") |> client.set_tools([weather_tool])
 /// ```
 pub fn set_tools(client: Client, tools: List(Tool)) -> Client {
   Client(..client, config: Config(..client.config, tools:))

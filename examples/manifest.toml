@@ -18,6 +18,7 @@ packages = [
 
 [requirements]
 file_streams = { version = ">= 1.4.0 and < 2.0.0" }
+gleam_json = { version = ">= 2.3.0 and < 3.0.0" }
 gleam_stdlib = { version = ">= 0.44.0 and < 2.0.0" }
 gleamstral = { path = "../" }
 glenvy = { version = ">= 1.2.0 and < 2.0.0" }

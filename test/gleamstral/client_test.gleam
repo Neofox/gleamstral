@@ -98,7 +98,12 @@ pub fn tool_choice_test() {
       name: "calculator",
       description: "Calculator",
       strict: True,
-      parameters: "{}",
+      parameters: client.ToolParameters(
+        type_: "object",
+        properties: [],
+        required: [],
+        additional_properties: False,
+      ),
     )
 
   let result = client.tool_choice_to_string(client.Choice(tool))

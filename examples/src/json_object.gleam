@@ -32,7 +32,7 @@ pub fn main() {
   case response {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
-      let content = extract_assistant_content(choice.message)
+      let assert message.AssistantMessage(content, _, _) = choice.message
 
       io.println("Response: " <> content)
       io.println(
@@ -47,12 +47,5 @@ pub fn main() {
     Error(error) -> {
       io.println("Error: " <> error)
     }
-  }
-}
-
-fn extract_assistant_content(msg: message.Message) -> String {
-  case msg {
-    message.AssistantMessage(content, _, _) -> content
-    _ -> "Unexpected message type"
   }
 }
