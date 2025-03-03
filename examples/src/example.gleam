@@ -3,13 +3,16 @@ import gleam/result
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
+import glenvy/dotenv
+import glenvy/env
 
 // To run this example:
-// gleam run -m examples/example 
-
-const api_key = "Your API key here"
+// gleam run -m example 
 
 pub fn main() {
+  let _ = dotenv.load()
+  let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+
   // Create a new client
   let client =
     client.new(api_key)

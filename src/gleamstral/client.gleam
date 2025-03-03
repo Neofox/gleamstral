@@ -425,22 +425,26 @@ pub fn chat_completion(
     |> request.set_path("/v1/chat/completions")
     |> request.set_body(body)
 
-  let http_result = httpc.send(request)
-
-  case http_result {
-    Ok(response) -> {
-      let decode_result =
-        json.parse(from: response.body, using: response_decoder())
-      case decode_result {
-        Ok(parsed) -> Ok(parsed)
-        Error(decode_error) -> {
-          io.debug(decode_error)
-          Error("Failed to decode response")
-        }
+  let assert Ok(http_result) = httpc.send(request)
+  case http_result.status {
+    200 -> {
+      let assert Ok(response) =
+        json.parse(from: http_result.body, using: response_decoder())
+      Ok(response)
+    }
+    _ -> {
+      io.debug(http_result.body)
+      case json.parse(from: http_result.body, using: error_decoder()) {
+        Ok(error) -> Error(error)
+        Error(_) -> Error(http_result.body)
       }
     }
-    Error(_) -> Error("HTTP request failed")
   }
+}
+
+fn error_decoder() -> decode.Decoder(String) {
+  use error <- decode.field("message", decode.string)
+  decode.success(error)
 }
 
 pub fn body_encoder(
