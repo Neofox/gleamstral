@@ -149,18 +149,19 @@ pub fn chat_completion_request_structure_test() {
 
 // Test response parsing
 pub fn parse_response_test() {
-  // Create a sample response JSON with an invalid structure
+  // Create a sample response JSON
   let sample_response =
     "{
-    \"id\": \"resp-123\",
+    \"id\": \"79fc5dfa8ca94fc7b23499281190d801\",
     \"object\": \"chat.completion\",
-    \"created\": 1707312805,
+    \"created\": 1740999100,
     \"model\": \"mistral-small-latest\",
     \"choices\": [
       {
         \"index\": 0,
         \"message\": {
           \"role\": \"assistant\",
+          \"tool_calls\": null,
           \"content\": \"Hello! How can I help you today?\"
         },
         \"finish_reason\": \"stop\"
@@ -173,8 +174,8 @@ pub fn parse_response_test() {
     }
   }"
 
-  // Parse the response
-  decode.run(dynamic.from(sample_response), client.response_decoder())
+  // Test standard response
+  json.parse(from: sample_response, using: client.response_decoder())
   |> should.be_ok
 }
 

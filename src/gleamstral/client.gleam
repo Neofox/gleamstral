@@ -1,4 +1,3 @@
-import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/float
 import gleam/http
@@ -431,7 +430,7 @@ pub fn chat_completion(
   case http_result {
     Ok(response) -> {
       let decode_result =
-        decode.run(dynamic.from(response.body), response_decoder())
+        json.parse(from: response.body, using: response_decoder())
       case decode_result {
         Ok(parsed) -> Ok(parsed)
         Error(decode_error) -> {

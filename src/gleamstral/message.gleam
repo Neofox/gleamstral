@@ -115,10 +115,10 @@ pub fn message_decoder() -> decode.Decoder(Message) {
     }
     "assistant" -> {
       use content <- decode.field("content", decode.string)
-      use tool_calls <- decode.optional_field(
+
+      use tool_calls <- decode.field(
         "tool_calls",
-        None,
-        tool_calls_decoder() |> decode.map(Some),
+        decode.optional(decode.list(tool_call_decoder())),
       )
       use prefix <- decode.optional_field("prefix", False, decode.bool)
       decode.success(AssistantMessage(content, tool_calls, prefix))
@@ -158,10 +158,6 @@ fn content_part_decoder() -> decode.Decoder(ContentPart) {
     }
     _ -> decode.failure(Text(""), "Unknown content part type")
   }
-}
-
-fn tool_calls_decoder() -> decode.Decoder(List(ToolCall)) {
-  decode.list(tool_call_decoder())
 }
 
 fn tool_call_decoder() -> decode.Decoder(ToolCall) {
