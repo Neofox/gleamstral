@@ -7,7 +7,7 @@ import gleamstral/model
 // To run this example:
 // gleam run -m examples/example 
 
-const api_key = "UDZsqg8vbaKXSSPSNiOb9weHnAviT4q7"
+const api_key = "Your API key here"
 
 pub fn main() {
   // Create a new client

@@ -1,5 +1,3 @@
-import gleam/dynamic
-import gleam/dynamic/decode
 import gleam/json
 import gleam/list
 import gleam/option
@@ -183,7 +181,7 @@ pub fn parse_response_test() {
 pub fn parse_invalid_response_test() {
   let invalid_response = "{\"invalid\": \"json\"}"
 
-  decode.run(dynamic.from(invalid_response), client.response_decoder())
+  json.parse(from: invalid_response, using: client.response_decoder())
   |> should.be_error
 }
 
