@@ -1,6 +1,5 @@
 import gleam/dynamic/decode
 import gleam/json
-import gleam/list
 import gleam/option.{type Option, None, Some}
 
 pub type MessageRole {
@@ -55,50 +54,6 @@ pub type MessageContent {
 pub type ContentPart {
   Text(String)
   ImageUrl(String)
-}
-
-pub type Error {
-  InvalidSystemMessage
-  InvalidAssistantMessage
-  InvalidToolMessage
-}
-
-pub fn system(content: MessageContent) -> Result(Message, Error) {
-  case content {
-    TextContent(_) -> Ok(SystemMessage(content))
-    MultiContent(parts) ->
-      case
-        list.all(parts, fn(part) {
-          case part {
-            Text(_) -> True
-            _ -> False
-          }
-        })
-      {
-        True -> Ok(SystemMessage(content))
-        False -> Error(InvalidSystemMessage)
-      }
-  }
-}
-
-pub fn user(content: MessageContent) -> Result(Message, Error) {
-  Ok(UserMessage(content))
-}
-
-pub fn assistant(
-  content: String,
-  tool_calls: Option(List(ToolCall)),
-  prefix: Bool,
-) -> Result(Message, Error) {
-  Ok(AssistantMessage(content, tool_calls, prefix))
-}
-
-pub fn tool(
-  content: MessageContent,
-  tool_call_id: String,
-  name: String,
-) -> Result(Message, Error) {
-  Ok(ToolMessage(content, tool_call_id, name))
 }
 
 pub fn message_decoder() -> decode.Decoder(Message) {

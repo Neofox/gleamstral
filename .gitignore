@@ -1,6 +1,10 @@
 *.beam
 *.ez
 /build
+
 examples/build
+examples/.env
+
 erl_crash.dump
 
+.env

@@ -1,7 +1,6 @@
 import gleam/json
 import gleam/list
 import gleam/option
-import gleam/result
 import gleam/string
 import gleamstral/client
 import gleamstral/message
@@ -115,21 +114,12 @@ pub fn chat_completion_request_structure_test() {
     |> client.set_max_tokens(100)
 
   // Create messages - handling Result return types
-  let user_msg = message.user(message.TextContent("Hello"))
-  should.equal(user_msg, Ok(message.UserMessage(message.TextContent("Hello"))))
+  let user_msg = message.UserMessage(message.TextContent("Hello"))
 
   let system_msg =
-    message.system(message.TextContent("You are a helpful assistant"))
+    message.SystemMessage(message.TextContent("You are a helpful assistant"))
 
-  should.be_true(string.contains(
-    case system_msg {
-      Ok(_) -> "success"
-      Error(_) -> "error"
-    },
-    "success",
-  ))
-
-  let messages = [user_msg, system_msg] |> result.values
+  let messages = [user_msg, system_msg]
 
   // Generate a request body
   let body =
