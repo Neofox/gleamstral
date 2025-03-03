@@ -5,6 +5,7 @@ import gleam/string
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
+import gleamstral/response
 import gleeunit/should
 
 pub fn new_client_test() {
@@ -163,7 +164,7 @@ pub fn parse_response_test() {
   }"
 
   // Test standard response
-  json.parse(from: sample_response, using: client.response_decoder())
+  json.parse(from: sample_response, using: response.response_decoder())
   |> should.be_ok
 }
 
@@ -171,7 +172,7 @@ pub fn parse_response_test() {
 pub fn parse_invalid_response_test() {
   let invalid_response = "{\"invalid\": \"json\"}"
 
-  json.parse(from: invalid_response, using: client.response_decoder())
+  json.parse(from: invalid_response, using: response.response_decoder())
   |> should.be_error
 }
 
@@ -197,23 +198,23 @@ pub fn client_return_type_test() {
 
   // Test that the Response type has the expected structure
   let mock_response =
-    client.Response(
+    response.Response(
       id: "test-id",
       object: "chat.completion",
       created: 123_456_789,
       model: "mistral-small-latest",
       choices: [
-        client.ChatCompletionChoice(
+        response.ChatCompletionChoice(
           index: 0,
           message: message.AssistantMessage(
             content: "Test content",
             tool_calls: option.None,
             prefix: False,
           ),
-          finish_reason: client.Stop,
+          finish_reason: response.Stop,
         ),
       ],
-      usage: client.Usage(
+      usage: response.Usage(
         prompt_tokens: 10,
         completion_tokens: 5,
         total_tokens: 15,
@@ -233,7 +234,7 @@ pub fn client_return_type_test() {
     |> should.be_ok
 
   should.equal(choice.index, 0)
-  should.equal(choice.finish_reason, client.Stop)
+  should.equal(choice.finish_reason, response.Stop)
 
   case choice.message {
     message.AssistantMessage(content, _, _) -> {
