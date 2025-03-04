@@ -6,6 +6,8 @@ version = "1.0.0"
 #
 description = "A Gleam client for the Mistral AI API"
 repository = { type = "github", user = "Neofox", repo = "gleamstral" }
+licences = ["MIT"]
+
 # links = [{ title = "Website", href = "" }]
 #
 # For a full reference of all the available options, you can have a look at
