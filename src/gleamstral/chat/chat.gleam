@@ -1,10 +1,8 @@
-import gleam/dynamic/decode
 import gleam/float
 import gleam/http
 import gleam/http/request
 import gleam/httpc
 import gleam/int
-import gleam/io
 import gleam/json
 import gleamstral/chat/response
 import gleamstral/client
@@ -161,7 +159,7 @@ pub fn complete(
   chat: Chat,
   model: model.Model,
   messages: List(message.Message),
-) -> Result(response.Response, String) {
+) -> Result(response.Response, client.Error) {
   let body = body_encoder(chat, model, messages) |> json.to_string
 
   let request =
@@ -180,19 +178,15 @@ pub fn complete(
         json.parse(from: http_result.body, using: response.response_decoder())
       Ok(response)
     }
+    429 -> Error(client.RateLimitExceeded)
+    401 -> Error(client.Unauthorized)
     _ -> {
-      io.debug(http_result)
-      case json.parse(from: http_result.body, using: error_decoder()) {
+      case json.parse(from: http_result.body, using: client.error_decoder()) {
         Ok(error) -> Error(error)
-        Error(_) -> Error(http_result.body)
+        Error(_) -> Error(client.Unknown(http_result.body))
       }
     }
   }
-}
-
-fn error_decoder() -> decode.Decoder(String) {
-  use error <- decode.field("message", decode.string)
-  decode.success(error)
 }
 
 pub fn body_encoder(

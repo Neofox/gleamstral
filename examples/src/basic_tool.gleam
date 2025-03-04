@@ -1,5 +1,7 @@
+import gleam/dynamic/decode
 import gleam/int
 import gleam/io
+import gleam/json
 import gleam/list
 import gleam/option.{Some}
 import gleamstral/chat/chat
@@ -16,14 +18,14 @@ import glenvy/env
 pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
-  // Create a simple calculator tool
+
   let calculator_tool =
     tool.create_function_tool(
       "calculator",
       "A tool that can perform basic arithmetic calculations",
       False,
-      [#("expression", "string")],
-      ["expression"],
+      [#("operator", "string"), #("operands", "array")],
+      ["operator", "operands"],
       False,
     )
 
@@ -35,7 +37,7 @@ pub fn main() {
       "You are a helpful assistant with access to a calculator tool.",
     )),
     message.UserMessage(message.TextContent(
-      "What is 1337 * 42? Please use the calculator tool.",
+      "What is 4 + 8 + 15 + 16 + 23 + 42? Please use the calculator tool.",
     )),
   ]
 
@@ -53,9 +55,15 @@ pub fn main() {
   io.println("Function: " <> tool_call.function.name)
   io.println("Arguments: " <> tool_call.function.arguments)
 
-  // Execute the tool 
-  // TODO: Parse the arguments
-  let result = 1337 * 42
+  // Execute the tool
+  let decoder = {
+    use operator <- decode.field("operator", decode.string)
+    use operands <- decode.field("operands", decode.list(decode.int))
+    decode.success(#(operator, operands))
+  }
+  let assert Ok(#(operator, operands)) =
+    json.parse(tool_call.function.arguments, decoder)
+  let assert Ok(result) = calculate(operator, operands)
   let tool_response = int.to_string(result)
   io.println("Tool result: " <> tool_response)
 
@@ -86,4 +94,14 @@ pub fn main() {
     <> " total_tokens: "
     <> int.to_string(follow_up.usage.total_tokens),
   )
+}
+
+fn calculate(operator: String, operands: List(Int)) -> Result(Int, String) {
+  case operator {
+    "+" -> Ok(list.fold(operands, 0, fn(acc, operand) { acc + operand }))
+    "-" -> Ok(list.fold(operands, 0, fn(acc, operand) { acc - operand }))
+    "*" -> Ok(list.fold(operands, 1, fn(acc, operand) { acc * operand }))
+    "/" -> Ok(list.fold(operands, 1, fn(acc, operand) { acc / operand }))
+    _ -> Error("Invalid operator")
+  }
 }

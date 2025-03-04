@@ -2,13 +2,10 @@ import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request
 import gleam/httpc
-import gleam/io
 import gleam/json
 import gleamstral/client
 import gleamstral/embeddings/response
 import gleamstral/model
-
-const api_endpoint = "api.mistral.ai"
 
 pub type Embeddings {
   Embeddings(client: client.Client, config: Config)
@@ -55,7 +52,7 @@ pub fn create(
   embeddings: Embeddings,
   model: model.Model,
   inputs: List(String),
-) -> Result(response.Response, String) {
+) -> Result(response.Response, client.Error) {
   let body = body_encoder(embeddings, model, inputs) |> json.to_string
 
   let request =
@@ -66,7 +63,7 @@ pub fn create(
       "Bearer " <> embeddings.client.api_key,
     )
     |> request.set_header("content-type", "application/json")
-    |> request.set_host(api_endpoint)
+    |> request.set_host(client.api_endpoint)
     |> request.set_path("/v1/embeddings")
     |> request.set_body(body)
 
@@ -77,19 +74,15 @@ pub fn create(
         json.parse(from: http_result.body, using: response.response_decoder())
       Ok(response)
     }
+    429 -> Error(client.RateLimitExceeded)
+    401 -> Error(client.Unauthorized)
     _ -> {
-      io.debug(http_result)
-      case json.parse(from: http_result.body, using: error_decoder()) {
+      case json.parse(from: http_result.body, using: client.error_decoder()) {
         Ok(error) -> Error(error)
-        Error(_) -> Error(http_result.body)
+        Error(_) -> Error(client.Unknown(http_result.body))
       }
     }
   }
-}
-
-fn error_decoder() -> decode.Decoder(String) {
-  use error <- decode.field("message", decode.string)
-  decode.success(error)
 }
 
 fn body_encoder(

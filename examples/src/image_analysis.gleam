@@ -51,7 +51,11 @@ pub fn main() {
       )
     }
     Error(error) -> {
-      io.println("Error: " <> error)
+      case error {
+        client.RateLimitExceeded -> io.println("Rate limit exceeded")
+        client.Unauthorized -> io.println("Unauthorized")
+        client.Unknown(error) -> io.println("Unknown error: " <> error)
+      }
     }
   }
 }
