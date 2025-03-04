@@ -2,6 +2,7 @@ import gleam/dynamic/decode
 import gleam/float
 import gleam/http
 import gleam/http/request
+import gleam/http/response
 import gleam/int
 import gleam/json
 import gleamstral/client
@@ -310,4 +311,21 @@ fn finish_reason_decoder() -> decode.Decoder(FinishReason) {
     "tool_calls" -> decode.success(ToolCalls)
     _ -> decode.failure(Stop, "Invalid finish reason")
   }
+}
+
+/// Handle HTTP responses from a chat completion request
+///
+/// ### Example
+/// 
+/// ```gleam
+/// let assert Ok(response) =
+///   chat.complete_request(chat, model.MistralSmall, messages)
+///   |> httpc.send
+/// let assert Ok(response) =
+///   chat.handle_response(chat, response)
+/// ```
+pub fn handle_response(
+  response: response.Response(String),
+) -> Result(Response, client.Error) {
+  client.handle_response(response, using: response_decoder())
 }

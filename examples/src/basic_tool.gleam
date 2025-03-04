@@ -46,8 +46,7 @@ pub fn main() {
   let assert Ok(response) =
     chat.complete_request(chat, model.MistralSmall, messages)
     |> httpc.send
-  let assert Ok(response) =
-    client.handle_response(response, chat.response_decoder())
+  let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
 
   io.println("Received response. Processing tool call...")
@@ -86,8 +85,7 @@ pub fn main() {
   let assert Ok(follow_up) =
     chat.complete_request(chat, model.MistralSmall, updated_messages)
     |> httpc.send
-  let assert Ok(follow_up) =
-    client.handle_response(follow_up, chat.response_decoder())
+  let assert Ok(follow_up) = chat.handle_response(follow_up)
   let assert Ok(follow_up_choice) = list.first(follow_up.choices)
 
   let assert message.AssistantMessage(final_answer, _, _) =

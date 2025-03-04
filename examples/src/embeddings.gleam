@@ -35,9 +35,7 @@ pub fn main() {
     |> embeddings.create_request(model.MistralEmbed, inputs)
     |> httpc.send
 
-  let result = client.handle_response(response, embeddings.response_decoder())
-
-  case result {
+  case embeddings.handle_response(response) {
     Ok(response) -> {
       io.println("Successfully generated embeddings!")
       io.println("Model: " <> response.model)

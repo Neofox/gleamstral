@@ -37,7 +37,7 @@ pub fn main() {
     |> chat.complete_request(model.Pixtral, messages)
     |> httpc.send
 
-  case client.handle_response(response, chat.response_decoder()) {
+  case chat.handle_response(response) {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
       let assert message.AssistantMessage(content, _, _) = choice.message

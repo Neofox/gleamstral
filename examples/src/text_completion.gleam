@@ -27,8 +27,7 @@ pub fn main() {
     |> chat.complete_request(model.MistralSmall, messages)
     |> httpc.send
 
-  let assert Ok(response) =
-    client.handle_response(response, chat.response_decoder())
+  let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
   let assert message.AssistantMessage(content, _, _) = choice.message
 

@@ -2,6 +2,7 @@ import gleam/dynamic/decode
 import gleam/float
 import gleam/http
 import gleam/http/request
+import gleam/http/response
 import gleam/int
 import gleam/json
 import gleamstral/client
@@ -278,4 +279,20 @@ fn finish_reason_decoder() -> decode.Decoder(FinishReason) {
     "tool_calls" -> decode.success(ToolCalls)
     _ -> decode.failure(Stop, "Invalid finish reason")
   }
+}
+
+/// Handle HTTP responses from an agent request
+///
+/// This is a convenience function that automatically uses the agent response decoder,
+/// so you don't need to pass it manually.
+///
+/// ## Example
+///
+/// ```gleam
+/// agent.handle_response(response)
+/// ```
+pub fn handle_response(
+  response: response.Response(String),
+) -> Result(Response, client.Error) {
+  client.handle_response(response, using: response_decoder())
 }

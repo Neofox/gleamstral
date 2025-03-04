@@ -1,6 +1,7 @@
 import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request
+import gleam/http/response
 import gleam/json
 import gleamstral/client
 import gleamstral/model
@@ -123,6 +124,23 @@ pub fn response_decoder() -> decode.Decoder(Response) {
   use model <- decode.field("model", decode.string)
   use usage <- decode.field("usage", usage_decoder())
   decode.success(Response(id:, object:, data:, model:, usage:))
+}
+
+/// Handle HTTP responses from an embeddings request
+///
+/// ### Example
+///
+/// ```gleam
+/// let assert Ok(response) =
+///   embeddings.create_request(embeddings, model.EmbeddingMistral, ["Text to embed"])
+///   |> httpc.send
+/// let assert Ok(response) =
+///   embeddings.handle_response(response)
+/// ```
+pub fn handle_response(
+  response: response.Response(String),
+) -> Result(Response, client.Error) {
+  client.handle_response(response, using: response_decoder())
 }
 
 pub type EmbeddingData {
