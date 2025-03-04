@@ -1,39 +1,31 @@
-import file_streams/file_stream
-import gleam/bit_array
 import gleam/int
 import gleam/io
 import gleam/list
-import gleamstral/chat/chat
+import gleamstral/agent/agent
 import gleamstral/client
 import gleamstral/message
-import gleamstral/model
 import glenvy/dotenv
 import glenvy/env
 
 // To run this example:
-// cd examples && gleam run -m image_analysis 
+// cd examples && gleam run -m agent 
 
 pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+  let assert Ok(agent_id) = env.get_string("AGENT_ID")
 
   // Create a new client
   let client = client.new(api_key)
 
-  let base64 = image_to_base64("image.png")
   let messages = [
-    message.UserMessage(
-      message.MultiContent([
-        message.Text("Please tell me the string on the box."),
-        message.ImageUrl("data:image/png;base64," <> base64),
-      ]),
-    ),
+    message.UserMessage(message.TextContent("What is the capital of France?")),
   ]
 
   let response =
-    chat.new(client)
-    |> chat.set_max_tokens(200)
-    |> chat.complete(model.Pixtral, messages)
+    agent.new(client)
+    |> agent.set_max_tokens(100)
+    |> agent.complete(agent_id, messages)
 
   case response {
     Ok(res) -> {
@@ -53,20 +45,5 @@ pub fn main() {
     Error(error) -> {
       io.println("Error: " <> error)
     }
-  }
-}
-
-pub fn image_to_base64(path: String) -> String {
-  let assert Ok(stream) = file_stream.open_read(path)
-  let content = read_until_eof(stream, <<>>)
-  let _ = file_stream.close(stream)
-
-  bit_array.base64_encode(content, True)
-}
-
-fn read_until_eof(stream, acc: BitArray) -> BitArray {
-  case file_stream.read_bytes(stream, 4096) {
-    Ok(chunk) -> read_until_eof(stream, bit_array.append(acc, chunk))
-    Error(_) -> acc
   }
 }

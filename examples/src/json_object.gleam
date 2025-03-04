@@ -1,6 +1,7 @@
 import gleam/int
 import gleam/io
 import gleam/list
+import gleamstral/chat/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -8,18 +9,14 @@ import glenvy/dotenv
 import glenvy/env
 
 // To run this example:
-// gleam run -m json_object 
+// cd examples && gleam run -m json_object 
 
 pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
 
   // Create a new client
-  let client =
-    client.new(api_key)
-    |> client.set_temperature(0.7)
-    |> client.set_max_tokens(150)
-    |> client.set_response_format(client.JsonObject)
+  let client = client.new(api_key)
 
   let messages = [
     message.SystemMessage(message.TextContent(
@@ -28,7 +25,12 @@ pub fn main() {
     message.UserMessage(message.TextContent("What is the capital of France?")),
   ]
 
-  let response = client.chat_completion(client, model.MistralSmall, messages)
+  let response =
+    chat.new(client)
+    |> chat.set_response_format(chat.JsonObject)
+    |> chat.set_max_tokens(100)
+    |> chat.complete(model.MistralSmall, messages)
+
   case response {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)

@@ -2,23 +2,22 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{Some}
+import gleamstral/chat/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
-import gleamstral/response
 import glenvy/dotenv
 import glenvy/env
 
 // To run this example:
-// gleam run -m basic_tool
+// cd examples && gleam run -m basic_tool
 
 pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
-
   // Create a simple calculator tool
   let calculator_tool =
-    client.create_function_tool(
+    chat.create_function_tool(
       "calculator",
       "A tool that can perform basic arithmetic calculations",
       False,
@@ -27,7 +26,8 @@ pub fn main() {
       False,
     )
 
-  let client = client.new(api_key) |> client.set_tools([calculator_tool])
+  let client = client.new(api_key)
+  let chat = chat.new(client) |> chat.set_tools([calculator_tool])
 
   let messages = [
     message.SystemMessage(message.TextContent(
@@ -39,8 +39,7 @@ pub fn main() {
   ]
 
   io.println("Sending initial request...")
-  let assert Ok(response) =
-    client.chat_completion(client, model.MistralSmall, messages)
+  let assert Ok(response) = chat.complete(chat, model.MistralSmall, messages)
   let assert Ok(choice) = list.first(response.choices)
 
   io.println("Received response. Processing tool call...")
@@ -71,22 +70,19 @@ pub fn main() {
 
   io.println("Sending follow-up request with tool result...")
   let assert Ok(follow_up) =
-    client.chat_completion(client, model.MistralLarge, updated_messages)
+    chat.complete(chat, model.MistralSmall, updated_messages)
   let assert Ok(follow_up_choice) = list.first(follow_up.choices)
 
   let assert message.AssistantMessage(final_answer, _, _) =
     follow_up_choice.message
 
-  io.println("\nFinal answer: " <> final_answer)
-  io.println("\nToken usage:")
-  io.println(format_usage(follow_up.usage))
-}
-
-fn format_usage(usage: response.Usage) -> String {
-  "Prompt tokens: "
-  <> int.to_string(usage.prompt_tokens)
-  <> "\nCompletion tokens: "
-  <> int.to_string(usage.completion_tokens)
-  <> "\nTotal tokens: "
-  <> int.to_string(usage.total_tokens)
+  io.println("Final answer: " <> final_answer)
+  io.println(
+    "Usage: completion_tokens: "
+    <> int.to_string(follow_up.usage.completion_tokens)
+    <> " prompt_tokens: "
+    <> int.to_string(follow_up.usage.prompt_tokens)
+    <> " total_tokens: "
+    <> int.to_string(follow_up.usage.total_tokens),
+  )
 }

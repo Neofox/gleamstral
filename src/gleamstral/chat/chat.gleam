@@ -1,0 +1,365 @@
+import gleam/dynamic/decode
+import gleam/float
+import gleam/http
+import gleam/http/request
+import gleam/httpc
+import gleam/int
+import gleam/io
+import gleam/json
+import gleam/list
+import gleamstral/chat/response
+import gleamstral/client
+import gleamstral/message
+import gleamstral/model
+
+const api_endpoint = "api.mistral.ai"
+
+pub type Chat {
+  Chat(client: client.Client, config: Config)
+}
+
+pub type Config {
+  Config(
+    temperature: Float,
+    max_tokens: Int,
+    top_p: Float,
+    stream: Bool,
+    stop: List(String),
+    random_seed: Int,
+    response_format: ResponseFormat,
+    tools: List(Tool),
+    tool_choice: ToolChoice,
+    presence_penalty: Float,
+    frequency_penalty: Float,
+    n: Int,
+    prediction: Prediction,
+    safe_prompt: Bool,
+  )
+}
+
+fn default_config() -> Config {
+  Config(
+    temperature: 1.0,
+    max_tokens: 0,
+    top_p: 1.0,
+    stream: False,
+    stop: [],
+    random_seed: 0,
+    response_format: Text,
+    tools: [],
+    tool_choice: Auto,
+    presence_penalty: 0.0,
+    frequency_penalty: 0.0,
+    n: 1,
+    prediction: Content(""),
+    safe_prompt: False,
+  )
+}
+
+pub type ResponseFormat {
+  JsonObject
+  Text
+}
+
+fn response_format_encoder(response_format: ResponseFormat) -> json.Json {
+  case response_format {
+    JsonObject -> json.string("json_object")
+    Text -> json.string("text")
+  }
+}
+
+pub type Tool {
+  Function(
+    name: String,
+    description: String,
+    strict: Bool,
+    parameters: ToolParameters,
+  )
+}
+
+pub type ToolParameters {
+  ToolParameters(
+    tool_type: String,
+    properties: List(#(String, ParameterProperty)),
+    required: List(String),
+    additional_properties: Bool,
+  )
+}
+
+pub type ParameterProperty {
+  ParameterProperty(param_type: String)
+}
+
+pub fn tool_encoder(tool: Tool) -> json.Json {
+  case tool {
+    Function(name, description, strict, parameters) ->
+      json.object([
+        #("type", json.string("function")),
+        #(
+          "function",
+          json.object([
+            #("name", json.string(name)),
+            #("description", json.string(description)),
+            #("strict", json.bool(strict)),
+            #("parameters", function_parameters_encoder(parameters)),
+          ]),
+        ),
+      ])
+  }
+}
+
+fn function_parameters_encoder(parameters: ToolParameters) -> json.Json {
+  json.object([
+    #("type", json.string(parameters.tool_type)),
+    #(
+      "properties",
+      json.object(
+        parameters.properties
+        |> list.map(fn(prop: #(String, ParameterProperty)) {
+          let #(name, property) = prop
+          #(name, json.object([#("type", json.string(property.param_type))]))
+        }),
+      ),
+    ),
+    #("required", json.array(parameters.required, of: json.string)),
+    #("additionalProperties", json.bool(parameters.additional_properties)),
+  ])
+}
+
+pub type ToolChoice {
+  Auto
+  None
+  Any
+  Required
+  Choice(Tool)
+}
+
+fn tool_choice_encoder(tool_choice: ToolChoice) -> json.Json {
+  case tool_choice {
+    Auto -> json.string("auto")
+    None -> json.string("none")
+    Any -> json.string("any")
+    Required -> json.string("required")
+    Choice(tool) ->
+      json.object([
+        #("type", json.string("function")),
+        #("function", json.object([#("name", json.string(tool.name))])),
+      ])
+  }
+}
+
+pub type Prediction {
+  Content(String)
+}
+
+pub fn new(client: client.Client) -> Chat {
+  Chat(client: client, config: default_config())
+}
+
+pub fn set_temperature(chat: Chat, temperature: Float) -> Chat {
+  Chat(
+    client: chat.client,
+    config: Config(
+      ..chat.config,
+      temperature: float.clamp(temperature, 0.0, 1.5),
+    ),
+  )
+}
+
+pub fn set_max_tokens(chat: Chat, max_tokens: Int) -> Chat {
+  Chat(
+    client: chat.client,
+    config: Config(..chat.config, max_tokens: int.max(max_tokens, 0)),
+  )
+}
+
+pub fn set_top_p(chat: Chat, top_p: Float) -> Chat {
+  Chat(
+    ..chat,
+    config: Config(..chat.config, top_p: float.clamp(top_p, 0.0, 1.0)),
+  )
+}
+
+pub fn set_stream(chat: Chat, stream: Bool) -> Chat {
+  Chat(..chat, config: Config(..chat.config, stream:))
+}
+
+pub fn set_stop(chat: Chat, stop: List(String)) -> Chat {
+  Chat(..chat, config: Config(..chat.config, stop:))
+}
+
+pub fn set_random_seed(chat: Chat, random_seed: Int) -> Chat {
+  Chat(
+    client: chat.client,
+    config: Config(..chat.config, random_seed: int.max(random_seed, 0)),
+  )
+}
+
+pub fn set_response_format(chat: Chat, response_format: ResponseFormat) -> Chat {
+  Chat(..chat, config: Config(..chat.config, response_format:))
+}
+
+pub fn set_tools(chat: Chat, tools: List(Tool)) -> Chat {
+  Chat(..chat, config: Config(..chat.config, tools:))
+}
+
+pub fn set_tool_choice(chat: Chat, tool_choice: ToolChoice) -> Chat {
+  Chat(..chat, config: Config(..chat.config, tool_choice:))
+}
+
+pub fn set_presence_penalty(chat: Chat, presence_penalty: Float) -> Chat {
+  Chat(
+    ..chat,
+    config: Config(
+      ..chat.config,
+      presence_penalty: float.clamp(presence_penalty, -2.0, 2.0),
+    ),
+  )
+}
+
+pub fn set_frequency_penalty(chat: Chat, frequency_penalty: Float) -> Chat {
+  Chat(
+    ..chat,
+    config: Config(
+      ..chat.config,
+      frequency_penalty: float.clamp(frequency_penalty, -2.0, 2.0),
+    ),
+  )
+}
+
+pub fn set_n(chat: Chat, n: Int) -> Chat {
+  Chat(..chat, config: Config(..chat.config, n: int.max(n, 1)))
+}
+
+pub fn set_prediction(chat: Chat, prediction: Prediction) -> Chat {
+  Chat(..chat, config: Config(..chat.config, prediction:))
+}
+
+pub fn set_safe_prompt(chat: Chat, safe_prompt: Bool) -> Chat {
+  Chat(..chat, config: Config(..chat.config, safe_prompt:))
+}
+
+pub fn complete(
+  chat: Chat,
+  model: model.Model,
+  messages: List(message.Message),
+) -> Result(response.Response, String) {
+  let body = body_encoder(chat, model, messages) |> json.to_string
+
+  let request =
+    request.new()
+    |> request.set_method(http.Post)
+    |> request.set_header("authorization", "Bearer " <> chat.client.api_key)
+    |> request.set_header("content-type", "application/json")
+    |> request.set_host(api_endpoint)
+    |> request.set_path("/v1/chat/completions")
+    |> request.set_body(body)
+
+  let assert Ok(http_result) = httpc.send(request)
+  case http_result.status {
+    200 -> {
+      let assert Ok(response) =
+        json.parse(from: http_result.body, using: response.response_decoder())
+      Ok(response)
+    }
+    _ -> {
+      io.debug(http_result)
+      case json.parse(from: http_result.body, using: error_decoder()) {
+        Ok(error) -> Error(error)
+        Error(_) -> Error(http_result.body)
+      }
+    }
+  }
+}
+
+/// Create a function tool with parameters
+///
+/// ### Example
+///
+/// ```gleam
+/// let weather_tool = client.create_function_tool(
+///   name: "get_weather",
+///   description: "Get current temperature for provided coordinates in celsius.",
+///   strict: True,
+///   property_types: [
+///     #("latitude", "number"),
+///     #("longitude", "number"),
+///   ],
+///   required: ["latitude", "longitude"],
+///   additional_properties: False,
+/// )
+/// ```
+pub fn create_function_tool(
+  name: String,
+  description: String,
+  strict: Bool,
+  property_types: List(#(String, String)),
+  required: List(String),
+  additional_properties: Bool,
+) -> Tool {
+  let properties =
+    property_types
+    |> list.map(fn(prop) {
+      let #(name, param_type) = prop
+      #(name, ParameterProperty(param_type))
+    })
+
+  Function(
+    name: name,
+    description: description,
+    strict: strict,
+    parameters: ToolParameters(
+      tool_type: "object",
+      properties: properties,
+      required: required,
+      additional_properties: additional_properties,
+    ),
+  )
+}
+
+fn error_decoder() -> decode.Decoder(String) {
+  use error <- decode.field("message", decode.string)
+  decode.success(error)
+}
+
+pub fn body_encoder(
+  chat: Chat,
+  model: model.Model,
+  messages: List(message.Message),
+) -> json.Json {
+  json.object([
+    #("model", json.string(model.to_string(model))),
+    #("temperature", json.float(chat.config.temperature)),
+    #("top_p", json.float(chat.config.top_p)),
+    #("max_tokens", case chat.config.max_tokens {
+      0 -> json.null()
+      max_tokens -> json.int(max_tokens)
+    }),
+    #("stream", json.bool(chat.config.stream)),
+    #("stop", json.array(chat.config.stop, of: json.string)),
+    #("random_seed", case chat.config.random_seed {
+      0 -> json.null()
+      random_seed -> json.int(random_seed)
+    }),
+    #("messages", json.array(messages, of: message.message_encoder)),
+    #(
+      "response_format",
+      json.object([
+        #("type", response_format_encoder(chat.config.response_format)),
+      ]),
+    ),
+    #("tools", json.array(chat.config.tools, of: tool_encoder)),
+    #("tool_choice", tool_choice_encoder(chat.config.tool_choice)),
+    #("presence_penalty", json.float(chat.config.presence_penalty)),
+    #("frequency_penalty", json.float(chat.config.frequency_penalty)),
+    #("n", json.int(chat.config.n)),
+    #("prediction", case chat.config.prediction {
+      Content(content) ->
+        json.object([
+          #("type", json.string("content")),
+          #("content", json.string(content)),
+        ])
+    }),
+    #("safe_prompt", json.bool(chat.config.safe_prompt)),
+  ])
+}

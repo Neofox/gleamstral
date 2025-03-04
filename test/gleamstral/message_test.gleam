@@ -138,33 +138,6 @@ pub fn tool_message_with_tool_fields_test() {
   should.equal(tool_msg.name, "image_generator")
 }
 
-pub fn get_role_test() {
-  // Test that get_role correctly returns the role for each message type
-  let system_msg = message.SystemMessage(message.TextContent("System"))
-  let user_msg = message.UserMessage(message.TextContent("User"))
-  let assistant_msg = message.AssistantMessage("Assistant", None, False)
-  let assistant_with_tools_msg =
-    message.AssistantMessage(
-      "Assistant with tools",
-      Some([
-        message.ToolCall(
-          id: "call_abc",
-          tool_type: "function",
-          function: message.FunctionCall(name: "test", arguments: "{}"),
-          index: 0,
-        ),
-      ]),
-      False,
-    )
-  let tool_msg = message.ToolMessage(message.TextContent("Tool"), "id", "name")
-
-  should.equal(message.System, message.get_role(system_msg))
-  should.equal(message.User, message.get_role(user_msg))
-  should.equal(message.Assistant, message.get_role(assistant_msg))
-  should.equal(message.Assistant, message.get_role(assistant_with_tools_msg))
-  should.equal(message.Tool, message.get_role(tool_msg))
-}
-
 pub fn tool_message_to_json_text_test() {
   // Create a tool message with text content
   let tool_msg =

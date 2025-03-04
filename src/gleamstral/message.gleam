@@ -9,24 +9,6 @@ pub type MessageRole {
   Tool
 }
 
-pub fn role_to_string(role: MessageRole) -> String {
-  case role {
-    System -> "system"
-    User -> "user"
-    Assistant -> "assistant"
-    Tool -> "tool"
-  }
-}
-
-pub fn get_role(message: Message) -> MessageRole {
-  case message {
-    SystemMessage(_) -> System
-    UserMessage(_) -> User
-    AssistantMessage(_, _, _) -> Assistant
-    ToolMessage(_, _, _) -> Tool
-  }
-}
-
 pub type ToolCall {
   ToolCall(id: String, tool_type: String, function: FunctionCall, index: Int)
 }
@@ -89,20 +71,14 @@ pub fn message_decoder() -> decode.Decoder(Message) {
 }
 
 fn content_decoder() -> decode.Decoder(MessageContent) {
-  decode.one_of(
-    // Try decoding as a simple string first
-    decode.string |> decode.map(TextContent),
-    or: [
-      // Then try decoding as a list of content parts
-      decode.list(content_part_decoder()) |> decode.map(MultiContent),
-    ],
-  )
+  decode.one_of(decode.string |> decode.map(TextContent), or: [
+    decode.list(content_part_decoder()) |> decode.map(MultiContent),
+  ])
 }
 
 fn content_part_decoder() -> decode.Decoder(ContentPart) {
-  use type_ <- decode.field("type", decode.string)
-
-  case type_ {
+  use content_part_type <- decode.then(decode.string)
+  case content_part_type {
     "text" -> {
       use text <- decode.field("text", decode.string)
       decode.success(Text(text))
