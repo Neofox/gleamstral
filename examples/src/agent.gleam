@@ -1,7 +1,8 @@
+import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/list
-import gleamstral/agent/agent
+import gleamstral/agent
 import gleamstral/client
 import gleamstral/message
 import glenvy/dotenv
@@ -22,12 +23,13 @@ pub fn main() {
     message.UserMessage(message.TextContent("What is the capital of France?")),
   ]
 
-  let response =
+  let assert Ok(response) =
     agent.new(client)
     |> agent.set_max_tokens(100)
-    |> agent.complete(agent_id, messages)
+    |> agent.complete_request(agent_id, messages)
+    |> httpc.send
 
-  case response {
+  case client.handle_response(response, agent.response_decoder()) {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
       let assert message.AssistantMessage(content, _, _) = choice.message
