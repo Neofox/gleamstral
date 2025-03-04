@@ -3,6 +3,12 @@ import gleam/json
 import gleam/option.{type Option}
 import gleamstral/tool
 
+/// Represents the role of a message in a conversation
+///
+/// - `System`: System messages provide context and instructions to the model
+/// - `User`: User messages represent the human interacting with the model
+/// - `Assistant`: Assistant messages are the model's responses
+/// - `Tool`: Tool messages contain the results of tool function calls
 pub type MessageRole {
   System
   User
@@ -10,6 +16,12 @@ pub type MessageRole {
   Tool
 }
 
+/// Represents a message in a conversation with the AI model
+///
+/// - `SystemMessage`: Instructions or context for the model
+/// - `UserMessage`: Input from the user to the model
+/// - `AssistantMessage`: Response from the model, potentially including tool calls
+/// - `ToolMessage`: Result of a tool function execution
 pub type Message {
   SystemMessage(content: MessageContent)
   UserMessage(content: MessageContent)
@@ -21,11 +33,19 @@ pub type Message {
   ToolMessage(content: MessageContent, tool_call_id: String, name: String)
 }
 
+/// Content of a message, which can be text-only or multi-modal
+///
+/// - `TextContent`: Simple text message
+/// - `MultiContent`: Message with multiple content parts (text and/or images)
 pub type MessageContent {
   TextContent(String)
   MultiContent(List(ContentPart))
 }
 
+/// Individual content part in a multi-modal message
+///
+/// - `Text`: Text content
+/// - `ImageUrl`: URL pointing to an image or a base64 encoded image string
 pub type ContentPart {
   Text(String)
   ImageUrl(String)

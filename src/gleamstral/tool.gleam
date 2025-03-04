@@ -3,6 +3,9 @@ import gleam/json
 import gleam/list
 import gleam/option.{type Option}
 
+/// Represents a tool that can be used by the model
+///
+/// - `Function`: A function tool with name, description, and parameters
 pub type Tool {
   Function(
     name: String,
@@ -12,6 +15,9 @@ pub type Tool {
   )
 }
 
+/// Parameters for a tool function
+///
+/// Contains the structure of parameters expected by the tool
 pub type ToolParameters {
   ToolParameters(
     tool_type: String,
@@ -21,6 +27,7 @@ pub type ToolParameters {
   )
 }
 
+/// Property definition for a tool parameter
 pub type ParameterProperty {
   ParameterProperty(param_type: String)
 }
@@ -61,10 +68,16 @@ fn function_parameters_encoder(parameters: ToolParameters) -> json.Json {
   ])
 }
 
+/// Represents a tool call made by the model
+///
+/// Contains the ID, type, function call details, and index of the tool call
 pub type ToolCall {
   ToolCall(id: String, tool_type: String, function: FunctionCall, index: Int)
 }
 
+/// Decodes a tool call from JSON
+///
+/// Used to parse tool calls in model responses
 pub fn tool_call_decoder() -> decode.Decoder(ToolCall) {
   use id <- decode.field("id", decode.string)
   use function <- decode.field("function", function_call_decoder())
@@ -94,6 +107,9 @@ pub fn tool_calls_encoder(tool_calls: Option(List(ToolCall))) -> json.Json {
   }
 }
 
+/// Represents a function call within a tool call
+///
+/// Contains the name of the function and its arguments as a JSON string
 pub type FunctionCall {
   FunctionCall(name: String, arguments: String)
 }
@@ -106,6 +122,12 @@ fn function_call_decoder() -> decode.Decoder(FunctionCall) {
 }
 
 /// Tool choice options for API requests
+///
+/// - `Auto`: Let the model decide when to use tools
+/// - `None`: Do not use tools
+/// - `Any`: Allow the model to use any available tool
+/// - `Required`: Require the model to use tools
+/// - `Choice(Tool)`: Require the model to use a specific tool
 pub type ToolChoice {
   Auto
   None

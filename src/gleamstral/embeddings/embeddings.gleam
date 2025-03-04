@@ -1,4 +1,3 @@
-import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request
 import gleam/httpc
@@ -7,6 +6,9 @@ import gleamstral/client
 import gleamstral/embeddings/response
 import gleamstral/model
 
+/// Represents an embeddings service with configuration options
+///
+/// Use this to generate vector embeddings for text inputs
 pub type Embeddings {
   Embeddings(client: client.Client, config: Config)
 }
@@ -15,16 +17,11 @@ pub type Config {
   Config(encoding_format: EncodingFormat)
 }
 
+/// Format of the generated embeddings
+///
+/// - `Float`: Standard floating point format for vector embeddings
 pub type EncodingFormat {
   Float
-}
-
-pub fn encoding_format_decoder() -> decode.Decoder(EncodingFormat) {
-  use encoding_format <- decode.then(decode.string)
-  case encoding_format {
-    "float" -> decode.success(Float)
-    _ -> decode.failure(Float, "Invalid encoding format")
-  }
 }
 
 fn encoding_format_encoder(encoding_format: EncodingFormat) -> json.Json {
@@ -44,10 +41,40 @@ fn default_config() -> Config {
   Config(encoding_format: Float)
 }
 
+/// Creates a new Embeddings instance with default configuration using the provided client
+///
+/// ### Example
+///
+/// ```gleam
+/// let client = client.new("your-api-key")
+/// let embeddings = embeddings.new(client)
+/// ```
 pub fn new(client: client.Client) -> Embeddings {
   Embeddings(client: client, config: default_config())
 }
 
+/// Generates embeddings for the provided text inputs
+///
+/// ### Parameters
+///
+/// - `embeddings`: The configured Embeddings instance
+/// - `model`: The model to use for generating embeddings
+/// - `inputs`: A list of text strings to generate embeddings for
+///
+/// ### Returns
+///
+/// - `Ok(response.Response)`: The successful response containing embeddings
+/// - `Error(client.Error)`: An error that occurred during the request
+///
+/// ### Example
+///
+/// ```gleam
+/// let result = embeddings.create(
+///   embeddings,
+///   model.EmbeddingMistral,
+///   ["Text to embed", "Another text to embed"]
+/// )
+/// ```
 pub fn create(
   embeddings: Embeddings,
   model: model.Model,

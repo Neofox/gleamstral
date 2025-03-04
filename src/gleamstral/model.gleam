@@ -9,6 +9,7 @@ pub type Model {
   Pixtral
   MistralEmbed
   MistralNemo
+  MistralSaba
 }
 
 pub fn to_string(model: Model) -> String {
@@ -21,6 +22,7 @@ pub fn to_string(model: Model) -> String {
     Pixtral -> "pixtral-12b-2409"
     MistralEmbed -> "mistral-embed"
     MistralNemo -> "open-mistral-nemo"
+    MistralSaba -> "mistral-saba-latest"
   }
 }
 
@@ -35,6 +37,7 @@ pub fn model_decoder() -> decode.Decoder(Model) {
     "pixtral-12b-2409" -> decode.success(Pixtral)
     "mistral-embed" -> decode.success(MistralEmbed)
     "open-mistral-nemo" -> decode.success(MistralNemo)
+    "mistral-saba-latest" -> decode.success(MistralSaba)
     _ -> decode.failure(MistralLarge, "Invalid model")
   }
 }

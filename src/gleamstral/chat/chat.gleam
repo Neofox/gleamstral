@@ -10,6 +10,7 @@ import gleamstral/message
 import gleamstral/model
 import gleamstral/tool
 
+/// Represents a chat conversation with configuration options
 pub type Chat {
   Chat(client: client.Client, config: Config)
 }
@@ -68,6 +69,14 @@ pub type Prediction {
   Content(String)
 }
 
+/// Creates a new Chat with default configuration using the provided client
+///
+/// ## Example
+///
+/// ```gleam
+/// let client = client.new("your-api-key")
+/// let chat = chat.new(client)
+/// ```
 pub fn new(client: client.Client) -> Chat {
   Chat(client: client, config: default_config())
 }
@@ -155,6 +164,26 @@ pub fn set_safe_prompt(chat: Chat, safe_prompt: Bool) -> Chat {
   Chat(..chat, config: Config(..chat.config, safe_prompt:))
 }
 
+/// Sends a chat completion request to the API and returns the response
+///
+/// ### Parameters
+///
+/// - `chat`: The configured Chat instance
+/// - `model`: The model to use for the completion
+/// - `messages`: The conversation history as a list of messages
+///
+/// ### Returns
+///
+/// - `Ok(response.Response)`: The successful response from the API
+/// - `Error(client.Error)`: An error that occurred during the request
+///
+/// ### Example
+///
+/// ```gleam
+/// let result = chat
+///   |> chat.set_temperature(0.7)
+///   |> chat.complete(model.MistralSmall, messages)
+/// ```
 pub fn complete(
   chat: Chat,
   model: model.Model,
@@ -189,7 +218,7 @@ pub fn complete(
   }
 }
 
-pub fn body_encoder(
+fn body_encoder(
   chat: Chat,
   model: model.Model,
   messages: List(message.Message),

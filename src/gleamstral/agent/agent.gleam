@@ -9,6 +9,7 @@ import gleamstral/client
 import gleamstral/message
 import gleamstral/tool
 
+/// Represents an agent with configuration options for communication with Mistral AI agents
 pub type Agent {
   Agent(client: client.Client, config: Config)
 }
@@ -61,6 +62,14 @@ pub type Prediction {
   Content(String)
 }
 
+/// Creates a new Agent with default configuration using the provided client
+///
+/// ### Example
+///
+/// ```gleam
+/// let client = client.new("your-api-key")
+/// let agent = agent.new(client)
+/// ```
 pub fn new(client: client.Client) -> Agent {
   Agent(client: client, config: default_config())
 }
@@ -127,6 +136,26 @@ pub fn set_prediction(agent: Agent, prediction: Prediction) -> Agent {
   Agent(..agent, config: Config(..agent.config, prediction:))
 }
 
+/// Sends an agent completion request to the API and returns the response
+///
+/// ### Parameters
+///
+/// - `agent`: The configured Agent instance
+/// - `agent_id`: The ID of the Mistral AI agent to interact with
+/// - `messages`: The conversation history as a list of messages
+///
+/// ### Returns
+///
+/// - `Ok(response.Response)`: The successful response from the API
+/// - `Error(client.Error)`: An error that occurred during the request
+///
+/// ### Example
+///
+/// ```gleam
+/// let result = agent
+///   |> agent.set_max_tokens(1000)
+///   |> agent.complete("agent-123", messages)
+/// ```
 pub fn complete(
   agent: Agent,
   agent_id: String,
@@ -161,7 +190,7 @@ pub fn complete(
   }
 }
 
-pub fn body_encoder(
+fn body_encoder(
   agent: Agent,
   agent_id: String,
   messages: List(message.Message),
