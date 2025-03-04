@@ -6,12 +6,10 @@ import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/json
-import gleam/list
 import gleamstral/agent/response
 import gleamstral/client
 import gleamstral/message
-
-const api_endpoint = "api.mistral.ai"
+import gleamstral/tool
 
 pub type Agent {
   Agent(client: client.Client, config: Config)
@@ -24,8 +22,8 @@ pub type Config {
     stop: List(String),
     random_seed: Int,
     response_format: ResponseFormat,
-    tools: List(Tool),
-    tool_choice: ToolChoice,
+    tools: List(tool.Tool),
+    tool_choice: tool.ToolChoice,
     presence_penalty: Float,
     frequency_penalty: Float,
     n: Int,
@@ -41,7 +39,7 @@ fn default_config() -> Config {
     random_seed: 0,
     response_format: Text,
     tools: [],
-    tool_choice: Auto,
+    tool_choice: tool.Auto,
     presence_penalty: 0.0,
     frequency_penalty: 0.0,
     n: 1,
@@ -58,86 +56,6 @@ fn response_format_encoder(response_format: ResponseFormat) -> json.Json {
   case response_format {
     JsonObject -> json.string("json_object")
     Text -> json.string("text")
-  }
-}
-
-pub type Tool {
-  Function(
-    name: String,
-    description: String,
-    strict: Bool,
-    parameters: ToolParameters,
-  )
-}
-
-pub type ToolParameters {
-  ToolParameters(
-    tool_type: String,
-    properties: List(#(String, ParameterProperty)),
-    required: List(String),
-    additional_properties: Bool,
-  )
-}
-
-pub type ParameterProperty {
-  ParameterProperty(param_type: String)
-}
-
-pub fn tool_encoder(tool: Tool) -> json.Json {
-  case tool {
-    Function(name, description, strict, parameters) ->
-      json.object([
-        #("type", json.string("function")),
-        #(
-          "function",
-          json.object([
-            #("name", json.string(name)),
-            #("description", json.string(description)),
-            #("strict", json.bool(strict)),
-            #("parameters", function_parameters_encoder(parameters)),
-          ]),
-        ),
-      ])
-  }
-}
-
-fn function_parameters_encoder(parameters: ToolParameters) -> json.Json {
-  json.object([
-    #("type", json.string(parameters.tool_type)),
-    #(
-      "properties",
-      json.object(
-        parameters.properties
-        |> list.map(fn(prop: #(String, ParameterProperty)) {
-          let #(name, property) = prop
-          #(name, json.object([#("type", json.string(property.param_type))]))
-        }),
-      ),
-    ),
-    #("required", json.array(parameters.required, of: json.string)),
-    #("additionalProperties", json.bool(parameters.additional_properties)),
-  ])
-}
-
-pub type ToolChoice {
-  Auto
-  None
-  Any
-  Required
-  Choice(Tool)
-}
-
-fn tool_choice_encoder(tool_choice: ToolChoice) -> json.Json {
-  case tool_choice {
-    Auto -> json.string("auto")
-    None -> json.string("none")
-    Any -> json.string("any")
-    Required -> json.string("required")
-    Choice(tool) ->
-      json.object([
-        #("type", json.string("function")),
-        #("function", json.object([#("name", json.string(tool.name))])),
-      ])
   }
 }
 
@@ -175,12 +93,12 @@ pub fn set_response_format(
   Agent(..agent, config: Config(..agent.config, response_format:))
 }
 
-pub fn set_tools(agent: Agent, tools: List(Tool)) -> Agent {
-  Agent(..agent, config: Config(..agent.config, tools:))
+pub fn set_tools(agent: Agent, tools: List(tool.Tool)) -> Agent {
+  Agent(..agent, config: Config(..agent.config, tools: tools))
 }
 
-pub fn set_tool_choice(agent: Agent, tool_choice: ToolChoice) -> Agent {
-  Agent(..agent, config: Config(..agent.config, tool_choice:))
+pub fn set_tool_choice(agent: Agent, tool_choice: tool.ToolChoice) -> Agent {
+  Agent(..agent, config: Config(..agent.config, tool_choice: tool_choice))
 }
 
 pub fn set_presence_penalty(agent: Agent, presence_penalty: Float) -> Agent {
@@ -223,7 +141,7 @@ pub fn complete(
     |> request.set_method(http.Post)
     |> request.set_header("authorization", "Bearer " <> agent.client.api_key)
     |> request.set_header("content-type", "application/json")
-    |> request.set_host(api_endpoint)
+    |> request.set_host(client.api_endpoint)
     |> request.set_path("/v1/agents/completions")
     |> request.set_body(body)
 
@@ -273,8 +191,8 @@ pub fn body_encoder(
         #("type", response_format_encoder(agent.config.response_format)),
       ]),
     ),
-    #("tools", json.array(agent.config.tools, of: tool_encoder)),
-    #("tool_choice", tool_choice_encoder(agent.config.tool_choice)),
+    #("tools", json.array(agent.config.tools, of: tool.tool_encoder)),
+    #("tool_choice", tool.tool_choice_encoder(agent.config.tool_choice)),
     #("presence_penalty", json.float(agent.config.presence_penalty)),
     #("frequency_penalty", json.float(agent.config.frequency_penalty)),
     #("n", json.int(agent.config.n)),

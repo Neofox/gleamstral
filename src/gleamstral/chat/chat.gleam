@@ -6,13 +6,11 @@ import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/json
-import gleam/list
 import gleamstral/chat/response
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
-
-const api_endpoint = "api.mistral.ai"
+import gleamstral/tool
 
 pub type Chat {
   Chat(client: client.Client, config: Config)
@@ -27,8 +25,8 @@ pub type Config {
     stop: List(String),
     random_seed: Int,
     response_format: ResponseFormat,
-    tools: List(Tool),
-    tool_choice: ToolChoice,
+    tools: List(tool.Tool),
+    tool_choice: tool.ToolChoice,
     presence_penalty: Float,
     frequency_penalty: Float,
     n: Int,
@@ -47,7 +45,7 @@ fn default_config() -> Config {
     random_seed: 0,
     response_format: Text,
     tools: [],
-    tool_choice: Auto,
+    tool_choice: tool.Auto,
     presence_penalty: 0.0,
     frequency_penalty: 0.0,
     n: 1,
@@ -65,86 +63,6 @@ fn response_format_encoder(response_format: ResponseFormat) -> json.Json {
   case response_format {
     JsonObject -> json.string("json_object")
     Text -> json.string("text")
-  }
-}
-
-pub type Tool {
-  Function(
-    name: String,
-    description: String,
-    strict: Bool,
-    parameters: ToolParameters,
-  )
-}
-
-pub type ToolParameters {
-  ToolParameters(
-    tool_type: String,
-    properties: List(#(String, ParameterProperty)),
-    required: List(String),
-    additional_properties: Bool,
-  )
-}
-
-pub type ParameterProperty {
-  ParameterProperty(param_type: String)
-}
-
-pub fn tool_encoder(tool: Tool) -> json.Json {
-  case tool {
-    Function(name, description, strict, parameters) ->
-      json.object([
-        #("type", json.string("function")),
-        #(
-          "function",
-          json.object([
-            #("name", json.string(name)),
-            #("description", json.string(description)),
-            #("strict", json.bool(strict)),
-            #("parameters", function_parameters_encoder(parameters)),
-          ]),
-        ),
-      ])
-  }
-}
-
-fn function_parameters_encoder(parameters: ToolParameters) -> json.Json {
-  json.object([
-    #("type", json.string(parameters.tool_type)),
-    #(
-      "properties",
-      json.object(
-        parameters.properties
-        |> list.map(fn(prop: #(String, ParameterProperty)) {
-          let #(name, property) = prop
-          #(name, json.object([#("type", json.string(property.param_type))]))
-        }),
-      ),
-    ),
-    #("required", json.array(parameters.required, of: json.string)),
-    #("additionalProperties", json.bool(parameters.additional_properties)),
-  ])
-}
-
-pub type ToolChoice {
-  Auto
-  None
-  Any
-  Required
-  Choice(Tool)
-}
-
-fn tool_choice_encoder(tool_choice: ToolChoice) -> json.Json {
-  case tool_choice {
-    Auto -> json.string("auto")
-    None -> json.string("none")
-    Any -> json.string("any")
-    Required -> json.string("required")
-    Choice(tool) ->
-      json.object([
-        #("type", json.string("function")),
-        #("function", json.object([#("name", json.string(tool.name))])),
-      ])
   }
 }
 
@@ -199,12 +117,12 @@ pub fn set_response_format(chat: Chat, response_format: ResponseFormat) -> Chat 
   Chat(..chat, config: Config(..chat.config, response_format:))
 }
 
-pub fn set_tools(chat: Chat, tools: List(Tool)) -> Chat {
-  Chat(..chat, config: Config(..chat.config, tools:))
+pub fn set_tools(chat: Chat, tools: List(tool.Tool)) -> Chat {
+  Chat(..chat, config: Config(..chat.config, tools: tools))
 }
 
-pub fn set_tool_choice(chat: Chat, tool_choice: ToolChoice) -> Chat {
-  Chat(..chat, config: Config(..chat.config, tool_choice:))
+pub fn set_tool_choice(chat: Chat, tool_choice: tool.ToolChoice) -> Chat {
+  Chat(..chat, config: Config(..chat.config, tool_choice: tool_choice))
 }
 
 pub fn set_presence_penalty(chat: Chat, presence_penalty: Float) -> Chat {
@@ -251,7 +169,7 @@ pub fn complete(
     |> request.set_method(http.Post)
     |> request.set_header("authorization", "Bearer " <> chat.client.api_key)
     |> request.set_header("content-type", "application/json")
-    |> request.set_host(api_endpoint)
+    |> request.set_host(client.api_endpoint)
     |> request.set_path("/v1/chat/completions")
     |> request.set_body(body)
 
@@ -270,51 +188,6 @@ pub fn complete(
       }
     }
   }
-}
-
-/// Create a function tool with parameters
-///
-/// ### Example
-///
-/// ```gleam
-/// let weather_tool = client.create_function_tool(
-///   name: "get_weather",
-///   description: "Get current temperature for provided coordinates in celsius.",
-///   strict: True,
-///   property_types: [
-///     #("latitude", "number"),
-///     #("longitude", "number"),
-///   ],
-///   required: ["latitude", "longitude"],
-///   additional_properties: False,
-/// )
-/// ```
-pub fn create_function_tool(
-  name: String,
-  description: String,
-  strict: Bool,
-  property_types: List(#(String, String)),
-  required: List(String),
-  additional_properties: Bool,
-) -> Tool {
-  let properties =
-    property_types
-    |> list.map(fn(prop) {
-      let #(name, param_type) = prop
-      #(name, ParameterProperty(param_type))
-    })
-
-  Function(
-    name: name,
-    description: description,
-    strict: strict,
-    parameters: ToolParameters(
-      tool_type: "object",
-      properties: properties,
-      required: required,
-      additional_properties: additional_properties,
-    ),
-  )
 }
 
 fn error_decoder() -> decode.Decoder(String) {
@@ -348,8 +221,8 @@ pub fn body_encoder(
         #("type", response_format_encoder(chat.config.response_format)),
       ]),
     ),
-    #("tools", json.array(chat.config.tools, of: tool_encoder)),
-    #("tool_choice", tool_choice_encoder(chat.config.tool_choice)),
+    #("tools", json.array(chat.config.tools, of: tool.tool_encoder)),
+    #("tool_choice", tool.tool_choice_encoder(chat.config.tool_choice)),
     #("presence_penalty", json.float(chat.config.presence_penalty)),
     #("frequency_penalty", json.float(chat.config.frequency_penalty)),
     #("n", json.int(chat.config.n)),

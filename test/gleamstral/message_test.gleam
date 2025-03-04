@@ -2,6 +2,7 @@ import gleam/json
 import gleam/option.{None, Some}
 import gleam/string
 import gleamstral/message
+import gleamstral/tool
 import gleeunit/should
 
 pub fn system_text_message_creation_test() {
@@ -53,10 +54,10 @@ pub fn assistant_text_message_creation_test() {
 pub fn assistant_with_tool_calls_test() {
   // Create a sample tool call
   let tool_call =
-    message.ToolCall(
+    tool.ToolCall(
       id: "call_123456",
       tool_type: "function",
-      function: message.FunctionCall(
+      function: tool.FunctionCall(
         name: "get_weather",
         arguments: "{\"location\":\"New York\",\"unit\":\"celsius\"}",
       ),
@@ -200,10 +201,10 @@ pub fn tool_message_to_json_multi_test() {
 pub fn assistant_message_with_tool_calls_to_json_test() {
   // Create an assistant message with tool calls
   let tool_call =
-    message.ToolCall(
+    tool.ToolCall(
       id: "call_xyz789",
       tool_type: "function",
-      function: message.FunctionCall(
+      function: tool.FunctionCall(
         name: "search_database",
         arguments: "{\"query\":\"restaurants\",\"location\":\"Paris\"}",
       ),

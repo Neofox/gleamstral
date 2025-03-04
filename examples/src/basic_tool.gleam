@@ -6,6 +6,7 @@ import gleamstral/chat/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
+import gleamstral/tool
 import glenvy/dotenv
 import glenvy/env
 
@@ -17,7 +18,7 @@ pub fn main() {
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
   // Create a simple calculator tool
   let calculator_tool =
-    chat.create_function_tool(
+    tool.create_function_tool(
       "calculator",
       "A tool that can perform basic arithmetic calculations",
       False,

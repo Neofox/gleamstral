@@ -1,6 +1,7 @@
 import gleam/dynamic/decode
 import gleam/json
-import gleam/option.{type Option, None, Some}
+import gleam/option.{type Option}
+import gleamstral/tool
 
 pub type MessageRole {
   System
@@ -9,20 +10,12 @@ pub type MessageRole {
   Tool
 }
 
-pub type ToolCall {
-  ToolCall(id: String, tool_type: String, function: FunctionCall, index: Int)
-}
-
-pub type FunctionCall {
-  FunctionCall(name: String, arguments: String)
-}
-
 pub type Message {
   SystemMessage(content: MessageContent)
   UserMessage(content: MessageContent)
   AssistantMessage(
     content: String,
-    tool_calls: Option(List(ToolCall)),
+    tool_calls: Option(List(tool.ToolCall)),
     prefix: Bool,
   )
   ToolMessage(content: MessageContent, tool_call_id: String, name: String)
@@ -55,7 +48,7 @@ pub fn message_decoder() -> decode.Decoder(Message) {
 
       use tool_calls <- decode.field(
         "tool_calls",
-        decode.optional(decode.list(tool_call_decoder())),
+        decode.optional(decode.list(tool.tool_call_decoder())),
       )
       use prefix <- decode.optional_field("prefix", False, decode.bool)
       decode.success(AssistantMessage(content, tool_calls, prefix))
@@ -91,21 +84,6 @@ fn content_part_decoder() -> decode.Decoder(ContentPart) {
   }
 }
 
-fn tool_call_decoder() -> decode.Decoder(ToolCall) {
-  use id <- decode.field("id", decode.string)
-  use function <- decode.field("function", function_call_decoder())
-  use index <- decode.field("index", decode.int)
-
-  decode.success(ToolCall(id, function, index, tool_type: "function"))
-}
-
-fn function_call_decoder() -> decode.Decoder(FunctionCall) {
-  use name <- decode.field("name", decode.string)
-  use arguments <- decode.field("arguments", decode.string)
-
-  decode.success(FunctionCall(name, arguments))
-}
-
 pub fn message_encoder(message: Message) -> json.Json {
   case message {
     SystemMessage(content) ->
@@ -124,7 +102,7 @@ pub fn message_encoder(message: Message) -> json.Json {
       json.object([
         #("role", json.string("assistant")),
         #("content", json.string(content)),
-        #("tool_calls", tool_calls_encoder(tool_calls)),
+        #("tool_calls", tool.tool_calls_encoder(tool_calls)),
         #("prefix", json.bool(prefix)),
       ])
 
@@ -155,27 +133,6 @@ fn content_encoder(content: MessageContent) -> json.Json {
               #("image_url", json.string(url)),
             ])
         }
-      })
-  }
-}
-
-fn tool_calls_encoder(tool_calls: Option(List(ToolCall))) -> json.Json {
-  case tool_calls {
-    None -> json.null()
-    Some(calls) ->
-      json.array(calls, of: fn(call) {
-        json.object([
-          #("id", json.string(call.id)),
-          #("type", json.string(call.tool_type)),
-          #(
-            "function",
-            json.object([
-              #("name", json.string(call.function.name)),
-              #("arguments", json.string(call.function.arguments)),
-            ]),
-          ),
-          #("index", json.int(call.index)),
-        ])
       })
   }
 }

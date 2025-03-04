@@ -1,3 +1,5 @@
+pub const api_endpoint = "api.mistral.ai"
+
 pub type Client {
   Client(api_key: String)
 }
