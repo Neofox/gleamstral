@@ -1,10 +1,10 @@
+import gleam/dynamic/decode
 import gleam/float
 import gleam/http
 import gleam/http/request
-import gleam/httpc
+import gleam/http/response
 import gleam/int
 import gleam/json
-import gleamstral/chat/response
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -164,58 +164,41 @@ pub fn set_safe_prompt(chat: Chat, safe_prompt: Bool) -> Chat {
   Chat(..chat, config: Config(..chat.config, safe_prompt:))
 }
 
-/// Sends a chat completion request to the API and returns the response
+/// Creates an HTTP request for the Chat API endpoint
 ///
-/// ### Parameters
-///
-/// - `chat`: The configured Chat instance
-/// - `model`: The model to use for the completion
-/// - `messages`: The conversation history as a list of messages
-///
-/// ### Returns
-///
-/// - `Ok(response.Response)`: The successful response from the API
-/// - `Error(client.Error)`: An error that occurred during the request
+/// This function prepares a request to be sent to the Mistral AI Chat API.
+/// It needs to be paired with an HTTP client to actually send the request,
+/// and the response should be handled with client.handle_response using 
+/// the appropriate decoder.
 ///
 /// ### Example
 ///
 /// ```gleam
-/// let result = chat
+/// // Create the request
+/// let req = chat
 ///   |> chat.set_temperature(0.7)
-///   |> chat.complete(model.MistralSmall, messages)
+///   |> chat.complete_request(model.MistralSmall, messages)
+///
+/// // Send the request with your HTTP client
+/// use response <- result.try(http_client.send(req))
+/// 
+/// // Handle the response with the appropriate decoder
+/// client.handle_response(response, using: chat.response_decoder())
 /// ```
-pub fn complete(
+pub fn complete_request(
   chat: Chat,
   model: model.Model,
   messages: List(message.Message),
-) -> Result(response.Response, client.Error) {
+) -> request.Request(String) {
   let body = body_encoder(chat, model, messages) |> json.to_string
 
-  let request =
-    request.new()
-    |> request.set_method(http.Post)
-    |> request.set_header("authorization", "Bearer " <> chat.client.api_key)
-    |> request.set_header("content-type", "application/json")
-    |> request.set_host(client.api_endpoint)
-    |> request.set_path("/v1/chat/completions")
-    |> request.set_body(body)
-
-  let assert Ok(http_result) = httpc.send(request)
-  case http_result.status {
-    200 -> {
-      let assert Ok(response) =
-        json.parse(from: http_result.body, using: response.response_decoder())
-      Ok(response)
-    }
-    429 -> Error(client.RateLimitExceeded)
-    401 -> Error(client.Unauthorized)
-    _ -> {
-      case json.parse(from: http_result.body, using: client.error_decoder()) {
-        Ok(error) -> Error(error)
-        Error(_) -> Error(client.Unknown(http_result.body))
-      }
-    }
-  }
+  request.new()
+  |> request.set_method(http.Post)
+  |> request.set_header("authorization", "Bearer " <> chat.client.api_key)
+  |> request.set_header("content-type", "application/json")
+  |> request.set_host(client.api_endpoint)
+  |> request.set_path("/v1/chat/completions")
+  |> request.set_body(body)
 }
 
 fn body_encoder(
@@ -258,4 +241,91 @@ fn body_encoder(
     }),
     #("safe_prompt", json.bool(chat.config.safe_prompt)),
   ])
+}
+
+pub type Response {
+  Response(
+    id: String,
+    object: String,
+    created: Int,
+    model: String,
+    choices: List(ChatCompletionChoice),
+    usage: Usage,
+  )
+}
+
+pub type FinishReason {
+  Stop
+  Length
+  ModelLength
+  Err
+  ToolCalls
+}
+
+pub type ChatCompletionChoice {
+  ChatCompletionChoice(
+    index: Int,
+    message: message.Message,
+    finish_reason: FinishReason,
+  )
+}
+
+pub type Usage {
+  Usage(prompt_tokens: Int, completion_tokens: Int, total_tokens: Int)
+}
+
+fn usage_decoder() -> decode.Decoder(Usage) {
+  use prompt_tokens <- decode.field("prompt_tokens", decode.int)
+  use completion_tokens <- decode.field("completion_tokens", decode.int)
+  use total_tokens <- decode.field("total_tokens", decode.int)
+  decode.success(Usage(prompt_tokens:, completion_tokens:, total_tokens:))
+}
+
+pub fn response_decoder() -> decode.Decoder(Response) {
+  use id <- decode.field("id", decode.string)
+  use object <- decode.field("object", decode.string)
+  use created <- decode.field("created", decode.int)
+  use model <- decode.field("model", decode.string)
+  use choices <- decode.field(
+    "choices",
+    decode.list(chat_completion_choice_decoder()),
+  )
+  use usage <- decode.field("usage", usage_decoder())
+  decode.success(Response(id:, object:, created:, model:, choices:, usage:))
+}
+
+fn chat_completion_choice_decoder() -> decode.Decoder(ChatCompletionChoice) {
+  use index <- decode.field("index", decode.int)
+  use message <- decode.field("message", message.message_decoder())
+  use finish_reason <- decode.field("finish_reason", finish_reason_decoder())
+  decode.success(ChatCompletionChoice(index:, message:, finish_reason:))
+}
+
+fn finish_reason_decoder() -> decode.Decoder(FinishReason) {
+  use finish_reason <- decode.then(decode.string)
+  case finish_reason {
+    "stop" -> decode.success(Stop)
+    "length" -> decode.success(Length)
+    "model_length" -> decode.success(ModelLength)
+    "error" -> decode.success(Err)
+    "tool_calls" -> decode.success(ToolCalls)
+    _ -> decode.failure(Stop, "Invalid finish reason")
+  }
+}
+
+/// Handle HTTP responses from a chat completion request
+///
+/// ### Example
+/// 
+/// ```gleam
+/// let assert Ok(response) =
+///   chat.complete_request(chat, model.MistralSmall, messages)
+///   |> httpc.send
+/// let assert Ok(response) =
+///   chat.handle_response(chat, response)
+/// ```
+pub fn handle_response(
+  response: response.Response(String),
+) -> Result(Response, client.Error) {
+  client.handle_response(response, using: response_decoder())
 }

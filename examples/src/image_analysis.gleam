@@ -1,9 +1,10 @@
 import file_streams/file_stream
 import gleam/bit_array
+import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/list
-import gleamstral/chat/chat
+import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -30,12 +31,13 @@ pub fn main() {
     ),
   ]
 
-  let response =
+  let assert Ok(response) =
     chat.new(client)
     |> chat.set_max_tokens(200)
-    |> chat.complete(model.Pixtral, messages)
+    |> chat.complete_request(model.Pixtral, messages)
+    |> httpc.send
 
-  case response {
+  case chat.handle_response(response) {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
       let assert message.AssistantMessage(content, _, _) = choice.message

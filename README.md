@@ -31,8 +31,10 @@ You can get an API key **for free** from Mistral [La Plateforme](https://console
 
 ```gleam
 import gleam/io
+import gleam/httpc
+import gleam/list
 import gleamstral/client
-import gleamstral/chat/chat
+import gleamstral/chat
 import gleamstral/message
 import gleamstral/model
 
@@ -41,7 +43,7 @@ pub fn main() {
   let client = client.new("your-mistral-api-key")
   
   // Set up a chat with Mistral Large model
-  let chat_client = chat.new(client) |> chat.with_temperature(0.7)
+  let chat_client = chat.new(client) |> chat.set_temperature(0.7)
 
   // Define a list of one or many messages to send to the model
   let messages = [
@@ -51,8 +53,10 @@ pub fn main() {
   // Send the request and get a response from the model
   let assert Ok(response) =
     chat_client
-    |> chat.complete(model.MistralSmall, messages)
+    |> chat.complete_request(model.MistralSmall, messages)
+    |> httpc.send
 
+  let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
   let assert message.AssistantMessage(content, _, _) = choice.message
 
@@ -78,8 +82,12 @@ let messages = [
 ]
 
 // Use a Pixtral model for image analysis
-let response = chat.new(client) |> chat.complete(model.PixtralLarge, messages)
+let assert Ok(response) = 
+  chat.new(client)
+  |> chat.complete_request(model.PixtralLarge, messages)
+  |> httpc.send
 
+let assert Ok(response) = chat.handle_response(response)
 // Get the first choice from the response
 let assert Ok(choice) = list.first(response.choices)
 let assert message.AssistantMessage(content, _, _) = choice.message
@@ -96,7 +104,12 @@ Access Mistral's Agent API to utilize pre-configured agents for specific tasks:
 let agent_id = "your-agent-id"
 
 // Call the agent with your agent ID and messages
-let response = agent.new(client) |> agent.complete(agent_id, messages)
+let assert Ok(response) = 
+  agent.new(client)
+  |> agent.complete_request(agent_id, messages)
+  |> httpc.send
+
+let assert Ok(response) = agent.handle_response(response)
 ```
 
 ### Embeddings Generation
@@ -105,8 +118,12 @@ Generate vector embeddings for text to enable semantic search, clustering, or ot
 
 ```gleam
 // Generate embeddings for a text input
-embeddings.new(client)
-|> embeddings.create(model.MistralEmbed, ["Your text to embed"])
+let assert Ok(response) =
+  embeddings.new(client)
+  |> embeddings.create_request(model.MistralEmbed, ["Your text to embed"])
+  |> httpc.send
+
+let assert Ok(response) = embeddings.handle_response(response)
 ```
 
 ### Tool/Function Calling
@@ -123,9 +140,13 @@ let weather_tool = tool.new(
 )
 
 // Create a chat client with the tool
-let response = chat.new(client)
-|> chat.with_tools([weather_tool])
-|> chat.complete(model.MistralSmall, messages)
+let assert Ok(response) = 
+  chat.new(client)
+  |> chat.set_tools([weather_tool])
+  |> chat.complete_request(model.MistralSmall, messages)
+  |> httpc.send
+
+let assert Ok(response) = chat.handle_response(response)
 ```
 
 ## Examples
@@ -149,6 +170,7 @@ Note: You'll need to set your Mistral API key in an `.env` file or as an environ
 
 ## Roadmap
 
+- [x] Decouple the HTTP client from the library
 - [ ] Add support and example for streaming responses
 - [ ] Add support for structured outputs (JSON, JSON Schema, etc.)
 - [ ] Add more tests and documentation

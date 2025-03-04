@@ -1,7 +1,8 @@
+import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/list
-import gleamstral/chat/chat
+import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -25,13 +26,14 @@ pub fn main() {
     message.UserMessage(message.TextContent("What is the capital of France?")),
   ]
 
-  let response =
+  let assert Ok(response) =
     chat.new(client)
     |> chat.set_response_format(chat.JsonObject)
     |> chat.set_max_tokens(100)
-    |> chat.complete(model.MistralSmall, messages)
+    |> chat.complete_request(model.MistralSmall, messages)
+    |> httpc.send
 
-  case response {
+  case chat.handle_response(response) {
     Ok(res) -> {
       let assert Ok(choice) = list.first(res.choices)
       let assert message.AssistantMessage(content, _, _) = choice.message

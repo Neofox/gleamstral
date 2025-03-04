@@ -1,10 +1,11 @@
 import gleam/dynamic/decode
+import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{Some}
-import gleamstral/chat/chat
+import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -42,7 +43,10 @@ pub fn main() {
   ]
 
   io.println("Sending initial request...")
-  let assert Ok(response) = chat.complete(chat, model.MistralSmall, messages)
+  let assert Ok(response) =
+    chat.complete_request(chat, model.MistralSmall, messages)
+    |> httpc.send
+  let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
 
   io.println("Received response. Processing tool call...")
@@ -79,7 +83,9 @@ pub fn main() {
 
   io.println("Sending follow-up request with tool result...")
   let assert Ok(follow_up) =
-    chat.complete(chat, model.MistralSmall, updated_messages)
+    chat.complete_request(chat, model.MistralSmall, updated_messages)
+    |> httpc.send
+  let assert Ok(follow_up) = chat.handle_response(follow_up)
   let assert Ok(follow_up_choice) = list.first(follow_up.choices)
 
   let assert message.AssistantMessage(final_answer, _, _) =

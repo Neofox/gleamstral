@@ -1,6 +1,7 @@
+import gleam/httpc
 import gleam/io
 import gleam/list
-import gleamstral/chat/chat
+import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
@@ -14,7 +15,6 @@ pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
 
-  // Create a new client
   let client = client.new(api_key)
 
   let messages = [
@@ -24,8 +24,10 @@ pub fn main() {
   let assert Ok(response) =
     chat.new(client)
     |> chat.set_max_tokens(1000)
-    |> chat.complete(model.MistralSmall, messages)
+    |> chat.complete_request(model.MistralSmall, messages)
+    |> httpc.send
 
+  let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
   let assert message.AssistantMessage(content, _, _) = choice.message
 

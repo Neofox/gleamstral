@@ -1,10 +1,11 @@
 import gleam/float
+import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/string
 import gleamstral/client
-import gleamstral/embeddings/embeddings
+import gleamstral/embeddings
 import gleamstral/model
 import glenvy/dotenv
 import glenvy/env
@@ -17,7 +18,6 @@ pub fn main() {
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
 
   let client = client.new(api_key)
-  let embeddings = embeddings.new(client)
 
   let inputs = [
     "Hello, world!", "Embeddings are vector representations of text.",
@@ -30,9 +30,12 @@ pub fn main() {
     <> " texts...",
   )
 
-  let result = embeddings.create(embeddings, model.MistralEmbed, inputs)
+  let assert Ok(response) =
+    embeddings.new(client)
+    |> embeddings.create_request(model.MistralEmbed, inputs)
+    |> httpc.send
 
-  case result {
+  case embeddings.handle_response(response) {
     Ok(response) -> {
       io.println("Successfully generated embeddings!")
       io.println("Model: " <> response.model)
