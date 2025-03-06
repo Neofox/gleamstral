@@ -171,8 +171,8 @@ Note: You'll need to set your Mistral API key in an `.env` file or as an environ
 ## Roadmap
 
 - [x] Decouple the HTTP client from the library
+- [x] Add support for structured outputs (JSON, JSON Schema, etc.)
 - [ ] Add support and example for streaming responses
-- [ ] Add support for structured outputs (JSON, JSON Schema, etc.)
 - [ ] Add more tests and documentation
 
 ## Contributing

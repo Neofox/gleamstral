@@ -55,13 +55,26 @@ fn default_config() -> Config {
 
 pub type ResponseFormat {
   JsonObject
+  JsonSchema(schema: json.Json, name: String)
   Text
 }
 
 fn response_format_encoder(response_format: ResponseFormat) -> json.Json {
   case response_format {
-    JsonObject -> json.string("json_object")
-    Text -> json.string("text")
+    JsonObject -> json.object([#("type", json.string("json_object"))])
+    JsonSchema(schema, name) ->
+      json.object([
+        #("type", json.string("json_schema")),
+        #(
+          "json_schema",
+          json.object([
+            #("name", json.string(name)),
+            #("schema", schema),
+            #("strict", json.bool(True)),
+          ]),
+        ),
+      ])
+    Text -> json.object([#("type", json.string("text"))])
   }
 }
 
@@ -221,12 +234,7 @@ fn body_encoder(
       random_seed -> json.int(random_seed)
     }),
     #("messages", json.array(messages, of: message.message_encoder)),
-    #(
-      "response_format",
-      json.object([
-        #("type", response_format_encoder(chat.config.response_format)),
-      ]),
-    ),
+    #("response_format", response_format_encoder(chat.config.response_format)),
     #("tools", json.array(chat.config.tools, of: tool.tool_encoder)),
     #("tool_choice", tool.tool_choice_encoder(chat.config.tool_choice)),
     #("presence_penalty", json.float(chat.config.presence_penalty)),
