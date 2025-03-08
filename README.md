@@ -41,7 +41,7 @@ import gleamstral/model
 pub fn main() {
   // Create a Mistral client with your API key
   let client = client.new("your-mistral-api-key")
-  
+
   // Set up a chat with Mistral Large model
   let chat_client = chat.new(client) |> chat.set_temperature(0.7)
 
@@ -82,7 +82,7 @@ let messages = [
 ]
 
 // Use a Pixtral model for image analysis
-let assert Ok(response) = 
+let assert Ok(response) =
   chat.new(client)
   |> chat.complete_request(model.PixtralLarge, messages)
   |> httpc.send
@@ -104,7 +104,7 @@ Access Mistral's Agent API to utilize pre-configured agents for specific tasks:
 let agent_id = "your-agent-id"
 
 // Call the agent with your agent ID and messages
-let assert Ok(response) = 
+let assert Ok(response) =
   agent.new(client)
   |> agent.complete_request(agent_id, messages)
   |> httpc.send
@@ -132,15 +132,17 @@ Define tools that the model can use to call functions in your application:
 
 ```gleam
 // Define a tool
-let weather_tool = tool.new(
+let weather_tool = tool.new_basic_function(
   "get_weather",
   "Get the current weather in a location",
-  // Define the parameters schema
-  [#("location", String, True, "The city and country, e.g. Seoul, South Korea")]
+  [
+    #("location", StringProperty("the name of the city")),
+    #("unit", StringProperty("the unit to use for the temp. F or C"))
+  ]
 )
 
 // Create a chat client with the tool
-let assert Ok(response) = 
+let assert Ok(response) =
   chat.new(client)
   |> chat.set_tools([weather_tool])
   |> chat.complete_request(model.MistralSmall, messages)
@@ -149,15 +151,46 @@ let assert Ok(response) =
 let assert Ok(response) = chat.handle_response(response)
 ```
 
+### Structured Outputs
+
+Receive structured outputs from the model, based on a JSON schema:
+
+```gleam
+pub type Book {
+  Book(name: String, authors: List(String))
+}
+
+fn book_decoder() -> blueprint.Decoder(Book) {
+  blueprint.decode2(
+    Book,
+    blueprint.field("name", blueprint.string()),
+    blueprint.field("authors", blueprint.list(blueprint.string())),
+  )
+}
+let json_schema = blueprint.generate_json_schema(book_decoder())
+
+// Create a chat client with structured output
+let assert Ok(response) =
+  chat.new(client)
+  |> chat.set_response_format(chat.JsonSchema(
+      schema: json_schema,
+      name: "book",
+    ))
+  |> chat.complete_request(model.MistralSmall, messages)
+  |> httpc.send
+```
+
 ## Examples
 
 The `examples/` directory contains several ready-to-use examples demonstrating the library's capabilities:
 
+- `text_completion.gleam`: Basic text completion example
 - `agent.gleam`: Shows how to use the Mistral Agent API
 - `basic_tool.gleam`: Demonstrates tool/function calling functionality
 - `embeddings.gleam`: Illustrates how to generate and use embeddings
 - `image_analysis.gleam`: Shows how to perform image analysis with Pixtral models
-- `json_object.gleam`: Example of structured JSON output from the model
+- `json_object.gleam`: Example of JSON output from the model
+- `structured_output.gleam`: Demonstrates how to use structured outputs
 
 To run any example:
 
@@ -171,8 +204,9 @@ Note: You'll need to set your Mistral API key in an `.env` file or as an environ
 ## Roadmap
 
 - [x] Decouple the HTTP client from the library
-- [ ] Add support and example for streaming responses
-- [ ] Add support for structured outputs (JSON, JSON Schema, etc.)
+- [x] Add support for structured outputs (JSON, JSON Schema, etc.)
+- [x] Improve tool calling support
+- [ ] Add example for streaming responses
 - [ ] Add more tests and documentation
 
 ## Contributing
