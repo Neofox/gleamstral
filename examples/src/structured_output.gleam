@@ -40,11 +40,15 @@ pub fn main() {
   ]
 
   // Generate a JSON schema using the blueprint library
+  // You can also make the schema by hand if you prefer and not use the blueprint library.
   let json_schema = blueprint.generate_json_schema(book_decoder())
 
   let assert Ok(response) =
     chat.new(client)
-    |> chat.set_response_format(chat.JsonSchema(json_schema, "Book"))
+    |> chat.set_response_format(chat.JsonSchema(
+      schema: json_schema,
+      name: "book",
+    ))
     |> chat.set_max_tokens(100)
     |> chat.complete_request(model.MistralSmall, messages)
     |> httpc.send

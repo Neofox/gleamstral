@@ -9,25 +9,53 @@ import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
-import gleamstral/tool
+import gleamstral/tool.{ArrayProperty, StringProperty}
 import glenvy/dotenv
 import glenvy/env
 
 // To run this example:
 // cd examples && gleam run -m basic_tool
 
+// If you want to make your own tool with custom parameters, you can build the type by hand.
+// if you are not gonna define any special behavior, you can use the `new_basic_function` function
+// from the `tool` module.
+// 
+// new_basic_function(
+//   "calculator",
+//   "A tool that can perform basic arithmetic calculations",
+//   [#("operator", StringProperty("should be either +,*,/,-")), #("operands", ArrayProperty("the numbers to operate on", "integer"))],
+// )
+//
+// This is equivalent to:
+// OR    
+// Function(
+//   name: "calculator_custom",
+//   description: "A custom tool that can perform basic arithmetic calculations",
+//   parameters: ToolParameters(
+//     properties: [
+//       #("operator", StringProperty(description: "should be either +,*,/,-")),
+//       #("operands", ArrayProperty(description: "the numbers to operate on", "integer")),
+//     ],
+//     required: ["operator", "operands"],
+//     tool_type: "function",
+//     additional_properties: False,
+//   ),
+//   strict: False,
+// )
+// 
+
 pub fn main() {
   let _ = dotenv.load()
   let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
 
   let calculator_tool =
-    tool.create_function_tool(
+    tool.new_basic_function(
       "calculator",
       "A tool that can perform basic arithmetic calculations",
-      False,
-      [#("operator", "string"), #("operands", "array")],
-      ["operator", "operands"],
-      False,
+      [
+        #("operator", StringProperty("should be either +,*,/,-")),
+        #("operands", tool.ObjectProperty("the numbers to operate on")),
+      ],
     )
 
   let client = client.new(api_key)
