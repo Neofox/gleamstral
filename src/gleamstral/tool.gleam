@@ -73,7 +73,10 @@ pub type ParameterProperty {
   /// An array property type with an item type (string, integer, number, boolean)
   ArrayProperty(description: String, item_type: String)
   /// An object property type
-  ObjectProperty(description: String)
+  ObjectProperty(
+    description: String,
+    properties: List(#(String, ParameterProperty)),
+  )
 }
 
 fn parameter_property_decoder() -> decode.Decoder(ParameterProperty) {
@@ -102,7 +105,16 @@ fn parameter_property_decoder() -> decode.Decoder(ParameterProperty) {
     }
     "object" -> {
       use description <- decode.field("description", decode.string)
-      decode.success(ObjectProperty(description:))
+      use properties <- decode.field(
+        "properties",
+        decode.list({
+          use a <- decode.field(0, decode.string)
+          use b <- decode.field(1, parameter_property_decoder())
+
+          decode.success(#(a, b))
+        }),
+      )
+      decode.success(ObjectProperty(description:, properties:))
     }
     _ ->
       decode.failure(StringProperty(description: ""), "Invalid parameter type")
@@ -142,11 +154,21 @@ fn parameter_property_encoder(property: ParameterProperty) -> json.Json {
         #("items", json.object([#("type", json.string(item_type))])),
       ])
 
-    ObjectProperty(description) ->
+    ObjectProperty(description, properties) ->
       json.object([
         #("type", json.string("object")),
         #("description", json.string(description)),
         #("additionalProperties", json.bool(False)),
+        #(
+          "properties",
+          json.object(
+            properties
+            |> list.map(fn(prop: #(String, ParameterProperty)) {
+              let #(name, property) = prop
+              #(name, parameter_property_encoder(property))
+            }),
+          ),
+        ),
       ])
   }
 }
@@ -288,7 +310,7 @@ pub fn create_function_tool(
         "number" -> #(name, NumberProperty(""))
         "boolean" -> #(name, BooleanProperty(""))
         "array" -> #(name, ArrayProperty("", ""))
-        "object" -> #(name, ObjectProperty(""))
+        "object" -> #(name, ObjectProperty("", []))
         _ -> #(name, StringProperty(""))
       }
     })

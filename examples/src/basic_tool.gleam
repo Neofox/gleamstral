@@ -54,7 +54,7 @@ pub fn main() {
       "A tool that can perform basic arithmetic calculations",
       [
         #("operator", StringProperty("should be either +,*,/,-")),
-        #("operands", tool.ObjectProperty("the numbers to operate on")),
+        #("operands", ArrayProperty("the numbers to operate on", "integer")),
       ],
     )
 
