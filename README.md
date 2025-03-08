@@ -151,6 +151,35 @@ let assert Ok(response) =
 let assert Ok(response) = chat.handle_response(response)
 ```
 
+### Structured Outputs
+
+Receive structured outputs from the model, based on a JSON schema:
+
+```gleam
+pub type Book {
+  Book(name: String, authors: List(String))
+}
+
+fn book_decoder() -> blueprint.Decoder(Book) {
+  blueprint.decode2(
+    Book,
+    blueprint.field("name", blueprint.string()),
+    blueprint.field("authors", blueprint.list(blueprint.string())),
+  )
+}
+let json_schema = blueprint.generate_json_schema(book_decoder())
+
+// Create a chat client with structured output
+let assert Ok(response) =
+  chat.new(client)
+  |> chat.set_response_format(chat.JsonSchema(
+      schema: json_schema,
+      name: "book",
+    ))
+  |> chat.complete_request(model.MistralSmall, messages)
+  |> httpc.send
+```
+
 ## Examples
 
 The `examples/` directory contains several ready-to-use examples demonstrating the library's capabilities:
