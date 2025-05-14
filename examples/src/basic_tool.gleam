@@ -9,7 +9,7 @@ import gleamstral/chat
 import gleamstral/client
 import gleamstral/message
 import gleamstral/model
-import gleamstral/tool.{ArrayProperty, StringProperty}
+import gleamstral/tool.{ArrayProperty, NumberProperty, StringProperty}
 import glenvy/dotenv
 import glenvy/env
 
@@ -54,7 +54,13 @@ pub fn main() {
       "A tool that can perform basic arithmetic calculations",
       [
         #("operator", StringProperty("should be either +,*,/,-")),
-        #("operands", ArrayProperty("the numbers to operate on", "integer")),
+        #(
+          "operands",
+          ArrayProperty(
+            "the numbers to operate on",
+            NumberProperty(description: "a number"),
+          ),
+        ),
       ],
     )
 

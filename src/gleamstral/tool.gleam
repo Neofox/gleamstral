@@ -71,7 +71,7 @@ pub type ParameterProperty {
   /// A boolean property type
   BooleanProperty(description: String)
   /// An array property type with an item type (string, integer, number, boolean)
-  ArrayProperty(description: String, item_type: String)
+  ArrayProperty(description: String, item_type: ParameterProperty)
   /// An object property type
   ObjectProperty(
     description: String,
@@ -100,7 +100,8 @@ fn parameter_property_decoder() -> decode.Decoder(ParameterProperty) {
     }
     "array" -> {
       use description <- decode.field("description", decode.string)
-      use item_type <- decode.subfield(["items", "type"], decode.string)
+      use item_type <- decode.field("items", parameter_property_decoder())
+
       decode.success(ArrayProperty(description:, item_type:))
     }
     "object" -> {
@@ -151,7 +152,7 @@ fn parameter_property_encoder(property: ParameterProperty) -> json.Json {
       json.object([
         #("type", json.string("array")),
         #("description", json.string(description)),
-        #("items", json.object([#("type", json.string(item_type))])),
+        #("items", parameter_property_encoder(item_type)),
       ])
 
     ObjectProperty(description, properties) ->
@@ -309,7 +310,7 @@ pub fn create_function_tool(
         "integer" -> #(name, IntegerProperty(""))
         "number" -> #(name, NumberProperty(""))
         "boolean" -> #(name, BooleanProperty(""))
-        "array" -> #(name, ArrayProperty("", ""))
+        "array" -> #(name, ArrayProperty("", StringProperty("")))
         "object" -> #(name, ObjectProperty("", []))
         _ -> #(name, StringProperty(""))
       }

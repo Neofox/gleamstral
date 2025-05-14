@@ -3,9 +3,8 @@ import gleam/option
 import gleeunit/should
 
 import gleamstral/tool.{
-  type FunctionCall, type ToolCall, ArrayProperty, BooleanProperty, Function,
-  FunctionCall, IntegerProperty, NumberProperty, ObjectProperty, StringProperty,
-  ToolCall, ToolParameters,
+  ArrayProperty, BooleanProperty, Function, FunctionCall, IntegerProperty,
+  NumberProperty, ObjectProperty, StringProperty, ToolCall, ToolParameters,
 }
 
 pub fn tool_encoder_test() {
@@ -110,7 +109,10 @@ pub fn parameter_property_test() {
   let number_property = NumberProperty(description: "A number")
   let boolean_property = BooleanProperty(description: "A boolean")
   let array_property =
-    ArrayProperty(description: "An array of strings", item_type: "string")
+    ArrayProperty(
+      description: "An array of strings",
+      item_type: StringProperty(description: "a string"),
+    )
   let object_property =
     ObjectProperty(description: "A nested object", properties: [
       #("nested", StringProperty(description: "A nested property")),
@@ -144,7 +146,10 @@ pub fn parameter_property_test() {
   should.equal(number_property.description, "A number")
   should.equal(boolean_property.description, "A boolean")
   should.equal(array_property.description, "An array of strings")
-  should.equal(array_property.item_type, "string")
+  should.equal(
+    array_property.item_type,
+    StringProperty(description: "a string"),
+  )
   should.equal(object_property.description, "A nested object")
   should.equal(object_property.properties, [
     #("nested", StringProperty(description: "A nested property")),
