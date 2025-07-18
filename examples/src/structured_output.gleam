@@ -1,6 +1,7 @@
 import gleam/httpc
 import gleam/int
 import gleam/io
+import gleam/json
 import gleam/list
 import gleamstral/chat
 import gleamstral/client
@@ -8,7 +9,6 @@ import gleamstral/message
 import gleamstral/model
 import glenvy/dotenv
 import glenvy/env
-import json/blueprint
 
 // To run this example:
 // cd examples && gleam run -m json_object 
@@ -17,12 +17,24 @@ pub type Book {
   Book(name: String, authors: List(String))
 }
 
-fn book_decoder() -> blueprint.Decoder(Book) {
-  blueprint.decode2(
-    Book,
-    blueprint.field("name", blueprint.string()),
-    blueprint.field("authors", blueprint.list(blueprint.string())),
-  )
+fn book_to_json_schema() -> json.Json {
+  json.object([
+    #("type", json.string("object")),
+    #(
+      "properties",
+      json.object([
+        #("name", json.object([#("type", json.string("string"))])),
+        #(
+          "authors",
+          json.object([
+            #("type", json.string("array")),
+            #("items", json.object([#("type", json.string("string"))])),
+          ]),
+        ),
+      ]),
+    ),
+    #("required", json.array(["name", "authors"], json.string)),
+  ])
 }
 
 pub fn main() {
@@ -41,8 +53,7 @@ pub fn main() {
 
   // Generate a JSON schema using the blueprint library
   // You can also make the schema by hand if you prefer and not use the blueprint library.
-  let json_schema = blueprint.generate_json_schema(book_decoder())
-
+  let json_schema = book_to_json_schema()
   let assert Ok(response) =
     chat.new(client)
     |> chat.set_response_format(chat.JsonSchema(

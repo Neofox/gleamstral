@@ -1,6 +1,8 @@
 import gleam/dynamic/decode
 
 pub type Model {
+  MagistralMedium
+  MagistralSmall
   MistralLarge
   MistralMedium
   MistralSmall
@@ -15,6 +17,8 @@ pub type Model {
 
 pub fn to_string(model: Model) -> String {
   case model {
+    MagistralMedium -> "magistral-medium-latest"
+    MagistralSmall -> "magistral-small-latest"
     MistralLarge -> "mistral-large-latest"
     MistralMedium -> "mistral-medium-latest"
     MistralSmall -> "mistral-small-latest"
@@ -31,6 +35,8 @@ pub fn to_string(model: Model) -> String {
 pub fn model_decoder() -> decode.Decoder(Model) {
   use model <- decode.then(decode.string)
   case model {
+    "magistral-medium-latest" -> decode.success(MagistralMedium)
+    "magistral-small-latest" -> decode.success(MagistralSmall)
     "mistral-large-latest" -> decode.success(MistralLarge)
     "mistral-medium-latest" -> decode.success(MistralMedium)
     "mistral-small-latest" -> decode.success(MistralSmall)
