@@ -9,37 +9,32 @@ import gleamstral/message
 import gleamstral/model
 import glenvy/dotenv
 import glenvy/env
+import jscheam/schema
 
 // To run this example:
-// cd examples && gleam run -m json_object 
+// cd examples && gleam run -m structured_output
 
 pub type Book {
   Book(name: String, authors: List(String))
 }
 
 fn book_to_json_schema() -> json.Json {
-  json.object([
-    #("type", json.string("object")),
-    #(
-      "properties",
-      json.object([
-        #("name", json.object([#("type", json.string("string"))])),
-        #(
-          "authors",
-          json.object([
-            #("type", json.string("array")),
-            #("items", json.object([#("type", json.string("string"))])),
-          ]),
-        ),
-      ]),
-    ),
-    #("required", json.array(["name", "authors"], json.string)),
+  schema.object([
+    schema.prop("name", schema.string())
+      |> schema.description("The name of the book"),
+    schema.prop("authors", schema.array(schema.string()))
+      |> schema.pattern("^[A-Z][a-z]+ [A-Z][a-z]+$")
+      |> schema.description(
+        "The authors of the book, in the format 'First Last'",
+      ),
   ])
+  |> schema.disallow_additional_props
+  |> schema.to_json
 }
 
 pub fn main() {
   let _ = dotenv.load()
-  let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+  let assert Ok(api_key) = env.string("MISTRAL_API_KEY")
 
   // Create a new client
   let client = client.new(api_key)

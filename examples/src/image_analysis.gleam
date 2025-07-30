@@ -16,7 +16,7 @@ import glenvy/env
 
 pub fn main() {
   let _ = dotenv.load()
-  let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+  let assert Ok(api_key) = env.string("MISTRAL_API_KEY")
 
   // Create a new client
   let client = client.new(api_key)

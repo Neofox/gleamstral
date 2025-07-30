@@ -46,7 +46,7 @@ import glenvy/env
 
 pub fn main() {
   let _ = dotenv.load()
-  let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+  let assert Ok(api_key) = env.string("MISTRAL_API_KEY")
 
   let calculator_tool =
     tool.new_basic_function(

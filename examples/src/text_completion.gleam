@@ -13,7 +13,7 @@ import glenvy/env
 
 pub fn main() {
   let _ = dotenv.load()
-  let assert Ok(api_key) = env.get_string("MISTRAL_API_KEY")
+  let assert Ok(api_key) = env.string("MISTRAL_API_KEY")
 
   let client = client.new(api_key)
 
@@ -26,6 +26,7 @@ pub fn main() {
     |> chat.set_max_tokens(1000)
     |> chat.complete_request(model.MistralSmall, messages)
     |> httpc.send
+    |> echo
 
   let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
