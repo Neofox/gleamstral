@@ -89,7 +89,7 @@ pub fn main() {
   let assert Ok(tool_call) = list.first(tool_calls)
 
   io.println("Tool call received:")
-  io.println("Content: " <> content)
+  io.println("Content: " <> message.content_to_text(content))
   io.println("Function: " <> tool_call.function.name)
   io.println("Arguments: " <> tool_call.function.arguments)
 
@@ -125,7 +125,7 @@ pub fn main() {
   let assert message.AssistantMessage(final_answer, _, _) =
     follow_up_choice.message
 
-  io.println("Final answer: " <> final_answer)
+  io.println("Final answer: " <> message.content_to_text(final_answer))
   io.println(
     "Usage: completion_tokens: "
     <> int.to_string(follow_up.usage.completion_tokens)

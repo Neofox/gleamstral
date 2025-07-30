@@ -26,11 +26,10 @@ pub fn main() {
     |> chat.set_max_tokens(1000)
     |> chat.complete_request(model.MistralSmall, messages)
     |> httpc.send
-    |> echo
 
   let assert Ok(response) = chat.handle_response(response)
   let assert Ok(choice) = list.first(response.choices)
   let assert message.AssistantMessage(content, _, _) = choice.message
 
-  io.println("Response: " <> content)
+  io.println("Response: " <> message.content_to_text(content))
 }

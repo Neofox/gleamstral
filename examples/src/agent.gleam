@@ -34,7 +34,7 @@ pub fn main() {
       let assert Ok(choice) = list.first(res.choices)
       let assert message.AssistantMessage(content, _, _) = choice.message
 
-      io.println("Response: " <> content)
+      io.println("Response: " <> message.content_to_text(content))
       io.println(
         "Usage: completion_tokens: "
         <> int.to_string(res.usage.completion_tokens)
