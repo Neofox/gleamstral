@@ -45,7 +45,11 @@ pub fn system_with_image_invalid_test() {
 pub fn assistant_text_message_creation_test() {
   // Test creating a valid assistant message with text content
   let assistant_msg =
-    message.AssistantMessage(message.TextContent("Assistant response"), None, False)
+    message.AssistantMessage(
+      message.TextContent("Assistant response"),
+      None,
+      False,
+    )
   should.equal(assistant_msg.content, message.TextContent("Assistant response"))
   should.equal(assistant_msg.tool_calls, None)
   should.equal(assistant_msg.prefix, False)
@@ -73,7 +77,10 @@ pub fn assistant_with_tool_calls_test() {
     )
 
   // Verify it has the expected structure
-  should.equal(assistant_msg.content, message.TextContent("I'll check the weather for you"))
+  should.equal(
+    assistant_msg.content,
+    message.TextContent("I'll check the weather for you"),
+  )
   should.equal(assistant_msg.tool_calls, Some([tool_call]))
   should.equal(assistant_msg.prefix, False)
 }
@@ -81,7 +88,12 @@ pub fn assistant_with_tool_calls_test() {
 pub fn assistant_multi_content_invalid_test() {
   // No longer applicable with the simplified API
   // We'll just check that assistant message accepts MessageContent
-  let assistant_msg = message.AssistantMessage(message.TextContent("Plain text only"), None, False)
+  let assistant_msg =
+    message.AssistantMessage(
+      message.TextContent("Plain text only"),
+      None,
+      False,
+    )
   should.equal(assistant_msg.content, message.TextContent("Plain text only"))
 }
 
@@ -277,7 +289,12 @@ pub fn user_message_to_json_test() {
 
 pub fn assistant_message_to_json_test() {
   // Create an assistant message without tool calls
-  let assistant_msg = message.AssistantMessage(message.TextContent("I'm an assistant"), None, False)
+  let assistant_msg =
+    message.AssistantMessage(
+      message.TextContent("I'm an assistant"),
+      None,
+      False,
+    )
 
   // Convert to JSON string
   let json_string =
